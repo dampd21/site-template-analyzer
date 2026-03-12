@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import type { FileData } from "@/utils/pdfGenerator";
 import type { AnalysisModel } from "@/types/analysis";
 import { analyzeSnapshot } from "@/utils/analyzer/analyzeSnapshot";
 import { buildAnalysisJson } from "@/utils/analyzer/jsonBuilder";
@@ -151,6 +152,8 @@ export default function App() {
   const [analysis, setAnalysis] = useState<AnalysisModel | null>(null);
   const [reportPdfs, setReportPdfs] = useState<PdfResult[]>([]);
   const [templatePdfs, setTemplatePdfs] = useState<PdfResult[]>([]);
+  const [templateFiles, setTemplateFiles] = useState<FileData[]>([]);
+  const [selectedTemplateFilePath, setSelectedTemplateFilePath] = useState("");
   const [snapshotScreenshot, setSnapshotScreenshot] = useState<string>("");
   const [snapshotVia, setSnapshotVia] = useState<"external-api" | "direct" | "">("");
   const [selectedTab, setSelectedTab] = useState<"summary" | "report" | "template" | "json">("summary");
@@ -177,7 +180,34 @@ export default function App() {
     [selectedTemplatePdf]
   );
 
+  const selectedTemplateFile = useMemo(
+    () => templateFiles.find((file) => file.path === selectedTemplateFilePath) ?? templateFiles[0] ?? null,
+    [templateFiles, selectedTemplateFilePath]
+  );
+
   const analysisJson = useMemo(() => (analysis ? buildAnalysisJson(analysis) : ""), [analysis]);
+
+
+  const handleCopyText = async (value: string) => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setErrorMsg("");
+    } catch {
+      setErrorMsg("클립보드 복사에 실패했습니다.");
+    }
+  };
+
+  const handleDownloadTextFile = (filename: string, content: string, mime = "text/plain;charset=utf-8") => {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename.split("/").pop() || filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
 
   const handleAnalyze = async () => {
     setStatus("analyzing");
@@ -186,6 +216,8 @@ export default function App() {
     setAnalysis(null);
     setReportPdfs([]);
     setTemplatePdfs([]);
+    setTemplateFiles([]);
+    setSelectedTemplateFilePath("");
     setSnapshotScreenshot("");
     setSnapshotVia("");
     setSelectedReportPdfId("");
@@ -206,8 +238,10 @@ export default function App() {
       setSelectedReportPdfId(reportDocs[0]?.id ?? "");
 
       setProgress("편집 가능한 템플릿 초안 생성 중...");
-      const templateFiles = buildTemplateFiles(model);
-      const templateDocs = generatePdfs(templateFiles, setProgress);
+      const generatedTemplateFiles = buildTemplateFiles(model);
+      setTemplateFiles(generatedTemplateFiles);
+      setSelectedTemplateFilePath(generatedTemplateFiles[0]?.path ?? "");
+      const templateDocs = generatePdfs(generatedTemplateFiles, setProgress);
       setTemplatePdfs(templateDocs);
       setSelectedTemplatePdfId(templateDocs[0]?.id ?? "");
 
@@ -418,16 +452,101 @@ export default function App() {
                       <iframe
                         title="template preview"
                         srcDoc={templatePreviewHtml}
-                        className="h-[900px] w-full bg-white"
+                        className="h-[700px] w-full bg-white"
                       />
                     </div>
                   ) : null}
+
+                  <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-base font-semibold text-white">템플릿 파일 브라우저</h3>
+                        <p className="mt-1 text-sm text-gray-400">
+                          생성된 파일을 선택해 코드 내용을 보고, 복사하거나 개별 다운로드할 수 있습니다.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+                      <div className="max-h-[700px] space-y-2 overflow-y-auto rounded-xl border border-gray-800 bg-gray-900 p-3">
+                        {templateFiles.map((file) => {
+                          const active = selectedTemplateFile?.path === file.path;
+                          return (
+                            <button
+                              key={file.path}
+                              onClick={() => setSelectedTemplateFilePath(file.path)}
+                              className={
+                                "w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors " +
+                                (active
+                                  ? "border-emerald-500 bg-emerald-500/10 text-white"
+                                  : "border-gray-800 bg-gray-950 text-gray-300 hover:border-gray-600")
+                              }
+                            >
+                              {file.path}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="overflow-hidden rounded-xl border border-gray-800 bg-gray-900">
+                        {selectedTemplateFile ? (
+                          <>
+                            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-800 bg-gray-950 px-4 py-3">
+                              <div>
+                                <p className="text-sm font-medium text-white">{selectedTemplateFile.path}</p>
+                                <p className="mt-1 text-xs text-gray-500">
+                                  {(selectedTemplateFile.content.length / 1024).toFixed(1)} KB
+                                </p>
+                              </div>
+
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  onClick={() => void handleCopyText(selectedTemplateFile.content)}
+                                  className="rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800"
+                                >
+                                  파일 내용 복사
+                                </button>
+                                <button
+                                  onClick={() => handleDownloadTextFile(selectedTemplateFile.path, selectedTemplateFile.content)}
+                                  className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
+                                >
+                                  파일 다운로드
+                                </button>
+                              </div>
+                            </div>
+
+                            <pre className="max-h-[640px] overflow-auto p-4 text-xs leading-6 text-gray-300">
+{selectedTemplateFile.content}
+                            </pre>
+                          </>
+                        ) : (
+                          <div className="p-6 text-sm text-gray-400">표시할 템플릿 파일이 없습니다.</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : null}
 
               {selectedTab === "json" ? (
-                <div className="mt-5 overflow-hidden rounded-xl border border-gray-800 bg-gray-950">
-                  <pre className="overflow-x-auto p-4 text-xs leading-6 text-gray-300">{analysisJson}</pre>
+                <div className="mt-5 space-y-4">
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => void handleCopyText(analysisJson)}
+                      className="rounded-lg border border-gray-700 bg-gray-950 px-4 py-2 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800"
+                    >
+                      JSON 복사
+                    </button>
+                    <button
+                      onClick={() => handleDownloadTextFile("analysis-model.json", analysisJson, "application/json;charset=utf-8")}
+                      className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500"
+                    >
+                      JSON 다운로드
+                    </button>
+                  </div>
+                  <div className="overflow-hidden rounded-xl border border-gray-800 bg-gray-950">
+                    <pre className="overflow-x-auto p-4 text-xs leading-6 text-gray-300">{analysisJson}</pre>
+                  </div>
                 </div>
               ) : null}
             </section>
