@@ -4,12 +4,56 @@ export interface CrawlClientResult {
   title: string;
   html: string;
   screenshot?: string;
+  via: "api" | "direct";
+}
+
+interface CrawlApiResponse {
+  success: boolean;
+  sourceUrl?: string;
+  resolvedUrl?: string;
+  title?: string;
+  html?: string;
+  screenshot?: string;
+  error?: string;
 }
 
 export async function fetchWebsiteSnapshot(url: string): Promise<CrawlClientResult> {
   const normalized = normalizeUrl(url);
 
-  const response = await fetch(normalized);
+  try {
+    return await fetchViaApi(normalized);
+  } catch {
+    return await fetchDirect(normalized);
+  }
+}
+
+async function fetchViaApi(url: string): Promise<CrawlClientResult> {
+  const response = await fetch("/api/crawl", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ url })
+  });
+
+  const data = (await response.json()) as CrawlApiResponse;
+
+  if (!response.ok || !data.success || !data.html) {
+    throw new Error(data.error || `API 요청 실패: HTTP ${response.status}`);
+  }
+
+  return {
+    sourceUrl: data.sourceUrl || url,
+    resolvedUrl: data.resolvedUrl || url,
+    title: data.title || url,
+    html: data.html,
+    screenshot: data.screenshot,
+    via: "api"
+  };
+}
+
+async function fetchDirect(url: string): Promise<CrawlClientResult> {
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`사이트를 불러오지 못했습니다. HTTP ${response.status}`);
   }
@@ -17,13 +61,14 @@ export async function fetchWebsiteSnapshot(url: string): Promise<CrawlClientResu
   const html = await response.text();
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
-  const title = (doc.title || normalized).trim() || normalized;
+  const title = (doc.title || url).trim() || url;
 
   return {
-    sourceUrl: normalized,
-    resolvedUrl: response.url || normalized,
+    sourceUrl: url,
+    resolvedUrl: response.url || url,
     title,
-    html
+    html,
+    via: "direct"
   };
 }
 

@@ -151,6 +151,8 @@ export default function App() {
   const [analysis, setAnalysis] = useState<AnalysisModel | null>(null);
   const [reportPdfs, setReportPdfs] = useState<PdfResult[]>([]);
   const [templatePdfs, setTemplatePdfs] = useState<PdfResult[]>([]);
+  const [snapshotScreenshot, setSnapshotScreenshot] = useState<string>("");
+  const [snapshotVia, setSnapshotVia] = useState<"api" | "direct" | "">("");
   const [selectedTab, setSelectedTab] = useState<"summary" | "report" | "template" | "json">("summary");
   const [selectedReportPdfId, setSelectedReportPdfId] = useState("");
   const [selectedTemplatePdfId, setSelectedTemplatePdfId] = useState("");
@@ -184,11 +186,15 @@ export default function App() {
     setAnalysis(null);
     setReportPdfs([]);
     setTemplatePdfs([]);
+    setSnapshotScreenshot("");
+    setSnapshotVia("");
     setSelectedReportPdfId("");
     setSelectedTemplatePdfId("");
 
     try {
       const snapshot = await fetchWebsiteSnapshot(websiteUrl);
+      setSnapshotScreenshot(snapshot.screenshot || "");
+      setSnapshotVia(snapshot.via);
       setProgress("스냅샷 분석 모델 생성 중...");
       const model = analyzeSnapshot(snapshot);
       setAnalysis(model);
@@ -229,7 +235,7 @@ export default function App() {
         <section className="rounded-2xl border border-gray-800 bg-gray-900 p-6">
           <h2 className="text-lg font-semibold text-gray-100">1. 사이트 입력</h2>
           <p className="mt-2 text-sm text-gray-400">
-            현재 1차 버전은 브라우저 fetch 기반으로 사이트 HTML을 수집합니다. 이후 Puppeteer API를 연결해 더 정밀한 렌더링 분석으로 확장할 예정입니다.
+            우선 /api/crawl Puppeteer 수집을 시도하고, 실패 시 브라우저 직접 fetch 방식으로 폴백합니다. 배포 후에는 Puppeteer 기반 수집 정확도가 더 높아집니다.
           </p>
 
           <div className="mt-4 flex flex-col gap-3 md:flex-row">
@@ -294,6 +300,7 @@ export default function App() {
                       <p><span className="text-gray-500">원본 URL:</span> {analysis.sourceUrl}</p>
                       <p><span className="text-gray-500">최종 URL:</span> {analysis.resolvedUrl}</p>
                       <p><span className="text-gray-500">페이지 타입:</span> {analysis.pageType}</p>
+                      <p><span className="text-gray-500">수집 방식:</span> {snapshotVia === "api" ? "Puppeteer API" : snapshotVia === "direct" ? "브라우저 직접 fetch" : "-"}</p>
                     </div>
                   </div>
 
@@ -323,6 +330,20 @@ export default function App() {
                       <p><span className="text-gray-500">radius:</span> {analysis.tokens.radius.slice(0, 4).join(", ") || "없음"}</p>
                     </div>
                   </div>
+
+                  {snapshotScreenshot ? (
+                    <div className="lg:col-span-2 rounded-2xl border border-gray-800 bg-gray-950 p-5">
+                      <h3 className="text-base font-semibold text-white">수집 스크린샷</h3>
+                      <p className="mt-2 text-sm text-gray-400">
+                        Puppeteer API 수집이 성공한 경우 전체 페이지 스크린샷이 함께 저장됩니다.
+                      </p>
+                      <img
+                        src={snapshotScreenshot}
+                        alt="captured website"
+                        className="mt-4 w-full rounded-xl border border-gray-800"
+                      />
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 
