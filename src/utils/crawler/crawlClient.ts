@@ -4,7 +4,7 @@ export interface CrawlClientResult {
   title: string;
   html: string;
   screenshot?: string;
-  via: "api" | "direct";
+  via: "external-api" | "direct";
 }
 
 interface CrawlApiResponse {
@@ -17,18 +17,26 @@ interface CrawlApiResponse {
   error?: string;
 }
 
+const EXTERNAL_API_URL = import.meta.env.VITE_CRAWLER_API_URL?.trim() || "";
+
 export async function fetchWebsiteSnapshot(url: string): Promise<CrawlClientResult> {
   const normalized = normalizeUrl(url);
 
-  try {
-    return await fetchViaApi(normalized);
-  } catch {
-    return await fetchDirect(normalized);
+  if (EXTERNAL_API_URL) {
+    try {
+      return await fetchViaExternalApi(normalized);
+    } catch {
+      return await fetchDirect(normalized);
+    }
   }
+
+  return await fetchDirect(normalized);
 }
 
-async function fetchViaApi(url: string): Promise<CrawlClientResult> {
-  const response = await fetch("/api/crawl", {
+async function fetchViaExternalApi(url: string): Promise<CrawlClientResult> {
+  const endpoint = `${EXTERNAL_API_URL.replace(/\/$/, "")}/crawl`;
+
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -39,7 +47,7 @@ async function fetchViaApi(url: string): Promise<CrawlClientResult> {
   const data = (await response.json()) as CrawlApiResponse;
 
   if (!response.ok || !data.success || !data.html) {
-    throw new Error(data.error || `API 요청 실패: HTTP ${response.status}`);
+    throw new Error(data.error || `외부 크롤링 API 요청 실패: HTTP ${response.status}`);
   }
 
   return {
@@ -48,7 +56,7 @@ async function fetchViaApi(url: string): Promise<CrawlClientResult> {
     title: data.title || url,
     html: data.html,
     screenshot: data.screenshot,
-    via: "api"
+    via: "external-api"
   };
 }
 
