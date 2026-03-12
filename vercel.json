@@ -2,7 +2,7 @@
   "functions": {
     "api/crawl.js": {
       "memory": 2048,
-      "maxDuration": 15
+      "maxDuration": 10
     }
   },
   "regions": ["icn1"]

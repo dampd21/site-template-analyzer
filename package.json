@@ -9,12 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@sparticuz/chromium": "^119.0.0",
+    "@sparticuz/chromium": "^123.0.1",
     "@types/file-saver": "^2.0.7",
     "clsx": "2.1.1",
     "file-saver": "^2.0.5",
     "jspdf": "^4.2.0",
-    "puppeteer-core": "^21.6.1",
+    "puppeteer-core": "^22.8.2",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "tailwind-merge": "3.4.0"

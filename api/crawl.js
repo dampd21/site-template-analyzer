@@ -31,6 +31,10 @@ function normalizeUrl(input) {
   return url.toString();
 }
 
+export const config = {
+  runtime: "nodejs20.x"
+};
+
 export default async function handler(req, res) {
   if (req.method === "OPTIONS") {
     setCors(res);
@@ -47,20 +51,22 @@ export default async function handler(req, res) {
   try {
     const normalizedUrl = normalizeUrl(req.body?.url);
 
+    const executablePath = await chromium.executablePath();
+
     browser = await puppeteer.launch({
-      args: chromium.args,
+      args: [...chromium.args, "--hide-scrollbars", "--disable-web-security"],
       defaultViewport: {
         width: 1440,
         height: 2200
       },
-      executablePath: await chromium.executablePath(),
+      executablePath,
       headless: chromium.headless
     });
 
     const page = await browser.newPage();
 
     await page.setUserAgent(
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
     );
 
     await page.goto(normalizedUrl, {
@@ -68,7 +74,7 @@ export default async function handler(req, res) {
       timeout: 15000
     });
 
-    await page.waitForTimeout(1200);
+    await new Promise((resolve) => setTimeout(resolve, 1200));
 
     const html = await page.content();
     const title = await page.title();
@@ -76,7 +82,7 @@ export default async function handler(req, res) {
       encoding: "base64",
       fullPage: true,
       type: "jpeg",
-      quality: 70
+      quality: 60
     });
 
     const finalUrl = page.url();
@@ -109,7 +115,7 @@ export default async function handler(req, res) {
       try {
         await browser.close();
       } catch {
-        // ignore close error
+        // ignore
       }
     }
   }
