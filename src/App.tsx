@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import JSZip from "jszip";
 import type { AnalysisModel } from "@/types/analysis";
 import { analyzeSnapshot } from "@/utils/analyzer/analyzeSnapshot";
 import { buildAnalysisJson } from "@/utils/analyzer/jsonBuilder";
@@ -290,6 +291,34 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
+  const resetWebsiteMode = () => {
+    setAnalysis(null);
+    setReportPdfs([]);
+    setTemplatePdfs([]);
+    setTemplateFiles([]);
+    setSelectedTemplateFilePath("");
+    setSnapshotScreenshot("");
+    setSnapshotVia("");
+    setSelectedReportPdfId("");
+    setSelectedTemplatePdfId("");
+    setSelectedTab("summary");
+    setProgress("");
+    setErrorMsg("");
+    setStatus("idle");
+  };
+
+  const resetFolderMode = () => {
+    setFolderFiles([]);
+    setFolderPdfs([]);
+    setSelectedFolderPdfId("");
+    setProgress("");
+    setErrorMsg("");
+    setStatus("idle");
+    if (folderInputRef.current) {
+      folderInputRef.current.value = "";
+    }
+  };
+
   const handleAnalyzeWebsite = async () => {
     setStatus("analyzing");
     setErrorMsg("");
@@ -482,6 +511,12 @@ export default function App() {
                 >
                   {status === "analyzing" ? "분석 중..." : "분석 시작"}
                 </button>
+                <button
+                  onClick={resetWebsiteMode}
+                  className="rounded-xl border border-gray-700 bg-gray-950 px-6 py-3 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800"
+                >
+                  결과 초기화
+                </button>
               </div>
 
               {progress ? (
@@ -577,6 +612,15 @@ export default function App() {
 
                 {selectedTab === "report" ? (
                   <div className="mt-5 space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => void handleDownloadZip("site-analysis-report.zip", buildReportFiles(analysis))}
+                        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500"
+                      >
+                        리포트 ZIP 다운로드
+                      </button>
+                    </div>
+
                     <div className="grid gap-3 md:grid-cols-2">
                       {reportPdfs.map((pdf) => {
                         const active = selectedReportPdf?.id === pdf.id;
@@ -616,6 +660,15 @@ export default function App() {
                   <div className="mt-5 space-y-4">
                     <div className="rounded-2xl border border-emerald-700/40 bg-emerald-900/10 p-4 text-sm text-emerald-300">
                       템플릿 초안은 “원본 복제”가 아니라, 분석한 구조를 기반으로 수정 가능한 React/Tailwind 스캐폴드로 재구성한 결과입니다.
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => void handleDownloadZip("generated-template.zip", templateFiles)}
+                        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
+                      >
+                        템플릿 ZIP 다운로드
+                      </button>
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-2">
