@@ -219,6 +219,24 @@ function buildCombinedTextFile(files: FileData[]): string {
     .join("\n");
 }
 
+function SummaryCard({ title, value, sub }: { title: string; value: string; sub?: string }) {
+  return (
+    <div className="rounded-2xl border border-gray-800 bg-gray-950 p-5">
+      <p className="text-xs uppercase tracking-wide text-gray-500">{title}</p>
+      <p className="mt-2 text-2xl font-bold text-white">{value}</p>
+      {sub ? <p className="mt-2 text-sm text-gray-400">{sub}</p> : null}
+    </div>
+  );
+}
+
+function BlockChip({ label }: { label: string }) {
+  return (
+    <span className="rounded-full border border-gray-700 bg-gray-950 px-3 py-1 text-xs text-gray-300">
+      {label}
+    </span>
+  );
+}
+
 export default function App() {
   const [inputMode, setInputMode] = useState<InputMode>("website");
   const [status, setStatus] = useState<Status>("idle");
@@ -235,7 +253,7 @@ export default function App() {
   const [folderFiles, setFolderFiles] = useState<FileData[]>([]);
   const [folderPdfs, setFolderPdfs] = useState<PdfResult[]>([]);
   const [selectedFolderPdfId, setSelectedFolderPdfId] = useState("");
-  const [selectedTab, setSelectedTab] = useState<"summary" | "report" | "template" | "json">("summary");
+  const [selectedTab, setSelectedTab] = useState<"overview" | "report" | "template" | "json">("overview");
   const [selectedReportPdfId, setSelectedReportPdfId] = useState("");
   const [selectedTemplatePdfId, setSelectedTemplatePdfId] = useState("");
   const folderInputRef = useRef<HTMLInputElement>(null);
@@ -367,7 +385,7 @@ export default function App() {
     setSnapshotVia("");
     setSelectedReportPdfId("");
     setSelectedTemplatePdfId("");
-    setSelectedTab("summary");
+    setSelectedTab("overview");
     setProgress("");
     setErrorMsg("");
     setStatus("idle");
@@ -403,6 +421,7 @@ export default function App() {
       const snapshot = await fetchWebsiteSnapshot(websiteUrl);
       setSnapshotScreenshot(snapshot.screenshot || "");
       setSnapshotVia(snapshot.via);
+
       setProgress("스냅샷 분석 모델 생성 중...");
       const model = analyzeSnapshot(snapshot);
       setAnalysis(model);
@@ -507,60 +526,59 @@ export default function App() {
         <div className="mx-auto max-w-7xl px-6 py-4">
           <h1 className="text-2xl font-bold text-white">Site Template Analyzer</h1>
           <p className="mt-1 text-sm text-gray-400">
-            사이트를 분석해 리포트, 구조화 JSON, 그리고 수정 가능한 템플릿 초안을 생성하는 실험용 도구입니다.
+            사이트를 분석해 구조화된 결과와 편집 가능한 템플릿 초안을 생성하는 도구입니다.
           </p>
         </div>
       </header>
 
       <main className="mx-auto max-w-7xl space-y-6 px-6 py-8">
         <section className="rounded-2xl border border-gray-800 bg-gray-900 p-6">
-          <h2 className="text-lg font-semibold text-gray-100">1. 입력 모드 선택</h2>
-          <p className="mt-2 text-sm text-gray-400">
-            사이트를 분석해 템플릿 초안을 만들거나, 로컬 폴더의 코드 파일을 읽어 PDF 문서 형태로 정리할 수 있습니다.
-          </p>
-
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <button
-              onClick={() => setInputMode("website")}
-              className={
-                "rounded-xl border p-4 text-left transition-colors " +
-                (inputMode === "website"
-                  ? "border-blue-500 bg-blue-500/10"
-                  : "border-gray-800 bg-gray-950 hover:border-gray-600")
-              }
-            >
-              <p className="font-medium text-white">사이트 분석 / 템플릿 생성</p>
-              <p className="mt-1 text-sm text-gray-400">
-                외부 Render Puppeteer API로 렌더링 결과를 수집하고 JSON, 리포트, 템플릿 초안을 생성합니다.
+          <div className="grid gap-4 lg:grid-cols-[1.1fr_2fr]">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-100">입력 모드 선택</h2>
+              <p className="mt-2 text-sm text-gray-400">
+                사이트 분석 또는 로컬 폴더 PDF 문서화 중 원하는 작업 흐름을 선택하세요.
               </p>
-            </button>
+            </div>
 
-            <button
-              onClick={() => setInputMode("folder")}
-              className={
-                "rounded-xl border p-4 text-left transition-colors " +
-                (inputMode === "folder"
-                  ? "border-emerald-500 bg-emerald-500/10"
-                  : "border-gray-800 bg-gray-950 hover:border-gray-600")
-              }
-            >
-              <p className="font-medium text-white">로컬 폴더 PDF 문서화</p>
-              <p className="mt-1 text-sm text-gray-400">
-                압축을 풀어둔 코드 폴더나 로컬 프로젝트 폴더를 선택해 파일별 PDF 문서로 정리합니다.
-              </p>
-            </button>
+            <div className="grid gap-3 md:grid-cols-2">
+              <button
+                onClick={() => setInputMode("website")}
+                className={
+                  "rounded-xl border p-4 text-left transition-colors " +
+                  (inputMode === "website"
+                    ? "border-blue-500 bg-blue-500/10"
+                    : "border-gray-800 bg-gray-950 hover:border-gray-600")
+                }
+              >
+                <p className="font-medium text-white">사이트 분석 / 템플릿 생성</p>
+                <p className="mt-1 text-sm text-gray-400">
+                  Render Puppeteer API를 통해 렌더링된 HTML과 스냅샷을 수집한 뒤, 리포트와 템플릿을 생성합니다.
+                </p>
+              </button>
+
+              <button
+                onClick={() => setInputMode("folder")}
+                className={
+                  "rounded-xl border p-4 text-left transition-colors " +
+                  (inputMode === "folder"
+                    ? "border-emerald-500 bg-emerald-500/10"
+                    : "border-gray-800 bg-gray-950 hover:border-gray-600")
+                }
+              >
+                <p className="font-medium text-white">로컬 폴더 PDF 문서화</p>
+                <p className="mt-1 text-sm text-gray-400">
+                  로컬 프로젝트의 텍스트 파일을 읽어 브라우저 인쇄 기반 PDF 문서 형태로 정리합니다.
+                </p>
+              </button>
+            </div>
           </div>
         </section>
 
         {inputMode === "website" ? (
           <>
             <section className="rounded-2xl border border-gray-800 bg-gray-900 p-6">
-              <h2 className="text-lg font-semibold text-gray-100">2. 사이트 입력</h2>
-              <p className="mt-2 text-sm text-gray-400">
-                외부 Render Puppeteer API를 우선 호출하고, 실패 시 브라우저 직접 fetch 방식으로 폴백합니다.
-              </p>
-
-              <div className="mt-4 flex flex-col gap-3 md:flex-row">
+              <div className="grid gap-4 lg:grid-cols-[1fr_auto_auto]">
                 <input
                   type="url"
                   value={websiteUrl}
@@ -579,7 +597,7 @@ export default function App() {
                   onClick={resetWebsiteMode}
                   className="rounded-xl border border-gray-700 bg-gray-950 px-6 py-3 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800"
                 >
-                  결과 초기화
+                  초기화
                 </button>
               </div>
 
@@ -597,316 +615,357 @@ export default function App() {
             </section>
 
             {analysis ? (
-              <section className="rounded-2xl border border-gray-800 bg-gray-900 p-6">
-                <div className="flex flex-wrap gap-2">
-                  {(["summary", "report", "template", "json"] as const).map((tab) => (
-                    <button
-                      key={tab}
-                      onClick={() => setSelectedTab(tab)}
-                      className={
-                        "rounded-xl px-4 py-2 text-sm font-medium transition-colors " +
-                        (selectedTab === tab
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-950 text-gray-300 hover:bg-gray-800")
-                      }
-                    >
-                      {tab === "summary" && "요약"}
-                      {tab === "report" && "리포트 문서"}
-                      {tab === "template" && "템플릿 초안"}
-                      {tab === "json" && "JSON"}
-                    </button>
-                  ))}
-                </div>
+              <>
+                <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <SummaryCard title="Page Type" value={analysis.pageType} sub={analysis.title} />
+                  <SummaryCard title="Blocks" value={String(analysis.blockSchemas.length)} sub="분류된 주요 블록 수" />
+                  <SummaryCard title="Reports" value={String(reportPdfs.length)} sub="생성된 리포트 문서 수" />
+                  <SummaryCard title="Collection" value={snapshotVia === "external-api" ? "Render API" : snapshotVia === "direct" ? "Direct Fetch" : "-"} sub={analysis.resolvedUrl} />
+                </section>
 
-                {selectedTab === "summary" ? (
-                  <div className="mt-5 grid gap-4 lg:grid-cols-2">
-                    <div className="rounded-2xl border border-gray-800 bg-gray-950 p-5">
-                      <h3 className="text-base font-semibold text-white">분석 개요</h3>
-                      <div className="mt-4 space-y-2 text-sm text-gray-300">
-                        <p><span className="text-gray-500">제목:</span> {analysis.title}</p>
-                        <p><span className="text-gray-500">원본 URL:</span> {analysis.sourceUrl}</p>
-                        <p><span className="text-gray-500">최종 URL:</span> {analysis.resolvedUrl}</p>
-                        <p><span className="text-gray-500">페이지 타입:</span> {analysis.pageType}</p>
-                        <p><span className="text-gray-500">수집 방식:</span> {snapshotVia === "external-api" ? "Render Puppeteer API" : snapshotVia === "direct" ? "브라우저 직접 fetch" : "-"}</p>
-                      </div>
+                <section className="rounded-2xl border border-gray-800 bg-gray-900 p-6">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-lg font-semibold text-white">분석 결과 워크스페이스</h2>
+                      <p className="mt-1 text-sm text-gray-400">
+                        원본과 생성 결과를 비교하고, 리포트/JSON/코드를 내보낼 수 있습니다.
+                      </p>
                     </div>
 
-                    <div className="rounded-2xl border border-gray-800 bg-gray-950 p-5">
-                      <h3 className="text-base font-semibold text-white">레이아웃 신호</h3>
-                      <ul className="mt-4 list-inside list-disc space-y-1 text-sm text-gray-300">
-                        {analysis.layout.signals.map((signal, index) => (
-                          <li key={index}>{signal}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="rounded-2xl border border-gray-800 bg-gray-950 p-5">
-                      <h3 className="text-base font-semibold text-white">프레임워크 힌트</h3>
-                      <ul className="mt-4 list-inside list-disc space-y-1 text-sm text-gray-300">
-                        {(analysis.frameworkHints.length > 0 ? analysis.frameworkHints : ["없음"]).map((item, index) => (
-                          <li key={index}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="rounded-2xl border border-gray-800 bg-gray-950 p-5">
-                      <h3 className="text-base font-semibold text-white">대표 토큰</h3>
-                      <div className="mt-4 space-y-2 text-sm text-gray-300">
-                        <p><span className="text-gray-500">색상:</span> {analysis.tokens.colors.slice(0, 8).join(", ") || "없음"}</p>
-                        <p><span className="text-gray-500">폰트:</span> {analysis.tokens.fontFamilies.slice(0, 4).join(", ") || "없음"}</p>
-                        <p><span className="text-gray-500">radius:</span> {analysis.tokens.radius.slice(0, 4).join(", ") || "없음"}</p>
-                      </div>
-                    </div>
-
-                    {snapshotScreenshot ? (
-                      <div className="lg:col-span-2 rounded-2xl border border-gray-800 bg-gray-950 p-5">
-                        <h3 className="text-base font-semibold text-white">수집 스크린샷</h3>
-                        <p className="mt-2 text-sm text-gray-400">
-                          Puppeteer API 수집이 성공한 경우 전체 페이지 스크린샷이 함께 저장됩니다.
-                        </p>
-                        <img
-                          src={snapshotScreenshot}
-                          alt="captured website"
-                          className="mt-4 w-full rounded-xl border border-gray-800"
-                        />
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {selectedTab === "report" ? (
-                  <div className="mt-5 space-y-4">
                     <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => void handleDownloadZip("site-analysis-report.zip", buildReportFiles(analysis))}
-                        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500"
-                      >
-                        리포트 ZIP 다운로드
-                      </button>
-                      <button
-                        onClick={() => void handleCopyAllReportFiles()}
-                        className="rounded-lg border border-gray-700 bg-gray-950 px-4 py-2 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800"
-                      >
-                        전체 리포트 복사
-                      </button>
-                      <button
-                        onClick={handleDownloadAllReportFiles}
-                        className="rounded-lg border border-blue-700 bg-blue-950 px-4 py-2 text-sm font-medium text-blue-200 transition-colors hover:bg-blue-900"
-                      >
-                        전체 리포트 TXT 다운로드
-                      </button>
+                      {(["overview", "report", "template", "json"] as const).map((tab) => (
+                        <button
+                          key={tab}
+                          onClick={() => setSelectedTab(tab)}
+                          className={
+                            "rounded-xl px-4 py-2 text-sm font-medium transition-colors " +
+                            (selectedTab === tab
+                              ? "bg-blue-600 text-white"
+                              : "bg-gray-950 text-gray-300 hover:bg-gray-800")
+                          }
+                        >
+                          {tab === "overview" && "개요"}
+                          {tab === "report" && "리포트"}
+                          {tab === "template" && "템플릿"}
+                          {tab === "json" && "JSON"}
+                        </button>
+                      ))}
                     </div>
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {reportPdfs.map((pdf) => {
-                        const active = selectedReportPdf?.id === pdf.id;
-                        return (
-                          <button
-                            key={pdf.id}
-                            onClick={() => setSelectedReportPdfId(pdf.id)}
-                            className={
-                              "rounded-xl border p-4 text-left transition-colors " +
-                              (active
-                                ? "border-blue-500 bg-blue-500/10"
-                                : "border-gray-800 bg-gray-950 hover:border-gray-600")
-                            }
-                          >
-                            <p className="font-medium text-white">{pdf.name}</p>
-                            <p className="mt-1 text-xs text-gray-400">
-                              {pdf.fileCount}개 파일 / {pdf.pageCount}페이지
-                            </p>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {selectedReportPdf ? (
-                      <div className="overflow-hidden rounded-xl border border-gray-800 bg-white">
-                        <iframe
-                          title="report preview"
-                          srcDoc={reportPreviewHtml}
-                          className="h-[900px] w-full bg-white"
-                        />
-                      </div>
-                    ) : null}
                   </div>
-                ) : null}
 
-                {selectedTab === "template" ? (
-                  <div className="mt-5 space-y-4">
-                    <div className="rounded-2xl border border-emerald-700/40 bg-emerald-900/10 p-4 text-sm text-emerald-300">
-                      템플릿 초안은 “원본 복제”가 아니라, 분석한 구조를 기반으로 수정 가능한 React/Tailwind 스캐폴드로 재구성한 결과입니다.
-                    </div>
-
-                    {snapshotScreenshot ? (
+                  {selectedTab === "overview" ? (
+                    <div className="mt-6 space-y-6">
                       <div className="grid gap-4 lg:grid-cols-2">
-                        <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4">
+                        <div className="rounded-2xl border border-gray-800 bg-gray-950 p-5">
                           <h3 className="text-base font-semibold text-white">원본 스냅샷</h3>
-                          <img
-                            src={snapshotScreenshot}
-                            alt="captured website"
-                            className="mt-4 w-full rounded-xl border border-gray-800"
-                          />
+                          {snapshotScreenshot ? (
+                            <img
+                              src={snapshotScreenshot}
+                              alt="captured website"
+                              className="mt-4 w-full rounded-xl border border-gray-800"
+                            />
+                          ) : (
+                            <div className="mt-4 rounded-xl border border-dashed border-gray-700 p-8 text-sm text-gray-500">
+                              스냅샷이 없습니다.
+                            </div>
+                          )}
                         </div>
 
-                        <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4">
+                        <div className="rounded-2xl border border-gray-800 bg-gray-950 p-5">
                           <h3 className="text-base font-semibold text-white">생성 기준 요약</h3>
-                          <div className="mt-4 space-y-2 text-sm text-gray-300">
-                            <p><span className="text-gray-500">페이지 타입:</span> {analysis.pageType}</p>
+                          <div className="mt-4 space-y-3 text-sm text-gray-300">
+                            <p><span className="text-gray-500">제목:</span> {analysis.title}</p>
+                            <p><span className="text-gray-500">원본 URL:</span> {analysis.sourceUrl}</p>
+                            <p><span className="text-gray-500">최종 URL:</span> {analysis.resolvedUrl}</p>
                             <p><span className="text-gray-500">레이아웃 신호:</span> {analysis.layout.signals.slice(0, 3).join(", ")}</p>
-                            <p><span className="text-gray-500">주요 블록:</span> {analysis.blockSchemas.slice(0, 6).map((b) => b.kind).join(", ")}</p>
+                            <p><span className="text-gray-500">프레임워크 힌트:</span> {(analysis.frameworkHints.length > 0 ? analysis.frameworkHints : ["없음"]).join(", ")}</p>
+                          </div>
+
+                          <div className="mt-5">
+                            <p className="text-sm font-medium text-white">주요 블록</p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {analysis.blockSchemas.slice(0, 10).map((block) => (
+                                <BlockChip key={block.id} label={`${block.kind} (${Math.round(block.confidence * 100)}%)`} />
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    ) : null}
 
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => void handleDownloadZip("generated-template.zip", templateFiles)}
-                        className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
-                      >
-                        템플릿 ZIP 다운로드
-                      </button>
-                      <button
-                        onClick={() => void handleCopyAllTemplateFiles()}
-                        className="rounded-lg border border-gray-700 bg-gray-950 px-4 py-2 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800"
-                      >
-                        전체 템플릿 복사
-                      </button>
-                      <button
-                        onClick={handleDownloadAllTemplateFiles}
-                        className="rounded-lg border border-emerald-700 bg-emerald-950 px-4 py-2 text-sm font-medium text-emerald-200 transition-colors hover:bg-emerald-900"
-                      >
-                        전체 템플릿 TXT 다운로드
-                      </button>
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {templatePdfs.map((pdf) => {
-                        const active = selectedTemplatePdf?.id === pdf.id;
-                        return (
-                          <button
-                            key={pdf.id}
-                            onClick={() => setSelectedTemplatePdfId(pdf.id)}
-                            className={
-                              "rounded-xl border p-4 text-left transition-colors " +
-                              (active
-                                ? "border-emerald-500 bg-emerald-500/10"
-                                : "border-gray-800 bg-gray-950 hover:border-gray-600")
-                            }
-                          >
-                            <p className="font-medium text-white">{pdf.name}</p>
-                            <p className="mt-1 text-xs text-gray-400">
-                              {pdf.fileCount}개 파일 / {pdf.pageCount}페이지
-                            </p>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {selectedTemplatePdf ? (
-                      <div className="overflow-hidden rounded-xl border border-gray-800 bg-white">
-                        <iframe
-                          title="template preview"
-                          srcDoc={templatePreviewHtml}
-                          className="h-[700px] w-full bg-white"
-                        />
-                      </div>
-                    ) : null}
-
-                    <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4">
-                      <div className="mb-4">
-                        <h3 className="text-base font-semibold text-white">템플릿 파일 브라우저</h3>
-                        <p className="mt-1 text-sm text-gray-400">
-                          생성된 파일을 선택해 코드 내용을 보고, 복사하거나 개별 다운로드할 수 있습니다.
-                        </p>
-                      </div>
-
-                      <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-                        <div className="max-h-[700px] space-y-2 overflow-y-auto rounded-xl border border-gray-800 bg-gray-900 p-3">
-                          {templateFiles.map((file) => {
-                            const active = selectedTemplateFile?.path === file.path;
-                            return (
-                              <button
-                                key={file.path}
-                                onClick={() => setSelectedTemplateFilePath(file.path)}
-                                className={
-                                  "w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors " +
-                                  (active
-                                    ? "border-emerald-500 bg-emerald-500/10 text-white"
-                                    : "border-gray-800 bg-gray-950 text-gray-300 hover:border-gray-600")
-                                }
-                              >
-                                {file.path}
-                              </button>
-                            );
-                          })}
+                      <div className="grid gap-4 lg:grid-cols-2">
+                        <div className="rounded-2xl border border-gray-800 bg-gray-950 p-5">
+                          <h3 className="text-base font-semibold text-white">레이아웃 / 토큰</h3>
+                          <div className="mt-4 space-y-2 text-sm text-gray-300">
+                            <p><span className="text-gray-500">헤더:</span> {String(analysis.layout.hasHeader)}</p>
+                            <p><span className="text-gray-500">사이드바:</span> {String(analysis.layout.hasSidebar)}</p>
+                            <p><span className="text-gray-500">메인:</span> {String(analysis.layout.hasMain)}</p>
+                            <p><span className="text-gray-500">대표 색상:</span> {analysis.tokens.colors.slice(0, 6).join(", ") || "없음"}</p>
+                            <p><span className="text-gray-500">대표 폰트:</span> {analysis.tokens.fontFamilies.slice(0, 3).join(", ") || "없음"}</p>
+                          </div>
                         </div>
 
-                        <div className="overflow-hidden rounded-xl border border-gray-800 bg-gray-900">
-                          {selectedTemplateFile ? (
-                            <>
-                              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-800 bg-gray-950 px-4 py-3">
-                                <div>
-                                  <p className="text-sm font-medium text-white">{selectedTemplateFile.path}</p>
-                                  <p className="mt-1 text-xs text-gray-500">
-                                    {(selectedTemplateFile.content.length / 1024).toFixed(1)} KB
-                                  </p>
-                                </div>
+                        <div className="rounded-2xl border border-gray-800 bg-gray-950 p-5">
+                          <h3 className="text-base font-semibold text-white">반복 패턴</h3>
+                          <ul className="mt-4 list-inside list-disc space-y-1 text-sm text-gray-300">
+                            {(analysis.repeatedPatterns.length > 0 ? analysis.repeatedPatterns.slice(0, 8) : []).map((item, index) => (
+                              <li key={index}>{item.parent} → {item.signature} × {item.count}</li>
+                            ))}
+                            {analysis.repeatedPatterns.length === 0 ? <li>반복 패턴 없음</li> : null}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
 
-                                <div className="flex flex-wrap gap-2">
-                                  <button
-                                    onClick={() => void handleCopyText(selectedTemplateFile.content)}
-                                    className="rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800"
-                                  >
-                                    파일 내용 복사
-                                  </button>
+                  {selectedTab === "report" ? (
+                    <div className="mt-6 space-y-4">
+                      <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => void handleDownloadZip("site-analysis-report.zip", buildReportFiles(analysis))}
+                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500"
+                          >
+                            리포트 ZIP 다운로드
+                          </button>
+                          <button
+                            onClick={() => void handleCopyAllReportFiles()}
+                            className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800"
+                          >
+                            전체 리포트 복사
+                          </button>
+                          <button
+                            onClick={handleDownloadAllReportFiles}
+                            className="rounded-lg border border-blue-700 bg-blue-950 px-4 py-2 text-sm font-medium text-blue-200 transition-colors hover:bg-blue-900"
+                          >
+                            전체 리포트 TXT 다운로드
+                          </button>
+                        </div>
+                      </div>
 
-                                  <button
-                                    onClick={() => handleDownloadTextFile(selectedTemplateFile.path, selectedTemplateFile.content)}
-                                    className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
-                                  >
-                                    파일 다운로드
-                                  </button>
-                                </div>
-                              </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {reportPdfs.map((pdf) => {
+                          const active = selectedReportPdf?.id === pdf.id;
+                          return (
+                            <button
+                              key={pdf.id}
+                              onClick={() => setSelectedReportPdfId(pdf.id)}
+                              className={
+                                "rounded-xl border p-4 text-left transition-colors " +
+                                (active
+                                  ? "border-blue-500 bg-blue-500/10"
+                                  : "border-gray-800 bg-gray-950 hover:border-gray-600")
+                              }
+                            >
+                              <p className="font-medium text-white">{pdf.name}</p>
+                              <p className="mt-1 text-xs text-gray-400">
+                                {pdf.fileCount}개 파일 / {pdf.pageCount}페이지
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
 
-                              <pre className="max-h-[640px] overflow-auto p-4 text-xs leading-6 text-gray-300">
-                                {selectedTemplateFile.content}
-                              </pre>
-                            </>
+                      {selectedReportPdf ? (
+                        <div className="overflow-hidden rounded-xl border border-gray-800 bg-white">
+                          <iframe
+                            title="report preview"
+                            srcDoc={reportPreviewHtml}
+                            className="h-[900px] w-full bg-white"
+                          />
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {selectedTab === "template" ? (
+                    <div className="mt-6 space-y-4">
+                      <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+                        <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4">
+                          <h3 className="text-base font-semibold text-white">원본 vs 생성 결과</h3>
+                          <p className="mt-1 text-sm text-gray-400">
+                            원본 스냅샷과 생성된 템플릿을 비교해 구조 반영 품질을 확인하세요.
+                          </p>
+
+                          {snapshotScreenshot ? (
+                            <img
+                              src={snapshotScreenshot}
+                              alt="captured website"
+                              className="mt-4 w-full rounded-xl border border-gray-800"
+                            />
                           ) : (
-                            <div className="p-6 text-sm text-gray-400">표시할 템플릿 파일이 없습니다.</div>
+                            <div className="mt-4 rounded-xl border border-dashed border-gray-700 p-8 text-sm text-gray-500">
+                              스냅샷이 없습니다.
+                            </div>
                           )}
                         </div>
+
+                        <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4">
+                          <h3 className="text-base font-semibold text-white">템플릿 내보내기</h3>
+                          <p className="mt-1 text-sm text-gray-400">
+                            ZIP / TXT / 전체 복사 형태로 템플릿 초안을 내보낼 수 있습니다.
+                          </p>
+
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <button
+                              onClick={() => void handleDownloadZip("generated-template.zip", templateFiles)}
+                              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
+                            >
+                              템플릿 ZIP 다운로드
+                            </button>
+                            <button
+                              onClick={() => void handleCopyAllTemplateFiles()}
+                              className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800"
+                            >
+                              전체 템플릿 복사
+                            </button>
+                            <button
+                              onClick={handleDownloadAllTemplateFiles}
+                              className="rounded-lg border border-emerald-700 bg-emerald-950 px-4 py-2 text-sm font-medium text-emerald-200 transition-colors hover:bg-emerald-900"
+                            >
+                              전체 템플릿 TXT 다운로드
+                            </button>
+                          </div>
+
+                          <div className="mt-6">
+                            <p className="text-sm font-medium text-white">핵심 블록 분류</p>
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              {analysis.blockSchemas.slice(0, 12).map((block) => (
+                                <BlockChip key={block.id} label={`${block.kind} · ${block.label.slice(0, 20)}`} />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {selectedTemplatePdf ? (
+                        <div className="overflow-hidden rounded-xl border border-gray-800 bg-white">
+                          <iframe
+                            title="template preview"
+                            srcDoc={templatePreviewHtml}
+                            className="h-[780px] w-full bg-white"
+                          />
+                        </div>
+                      ) : null}
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        {templatePdfs.map((pdf) => {
+                          const active = selectedTemplatePdf?.id === pdf.id;
+                          return (
+                            <button
+                              key={pdf.id}
+                              onClick={() => setSelectedTemplatePdfId(pdf.id)}
+                              className={
+                                "rounded-xl border p-4 text-left transition-colors " +
+                                (active
+                                  ? "border-emerald-500 bg-emerald-500/10"
+                                  : "border-gray-800 bg-gray-950 hover:border-gray-600")
+                              }
+                            >
+                              <p className="font-medium text-white">{pdf.name}</p>
+                              <p className="mt-1 text-xs text-gray-400">
+                                {pdf.fileCount}개 파일 / {pdf.pageCount}페이지
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4">
+                        <div className="mb-4">
+                          <h3 className="text-base font-semibold text-white">템플릿 파일 브라우저</h3>
+                          <p className="mt-1 text-sm text-gray-400">
+                            생성된 파일을 선택해 코드 내용을 검토하고 복사하거나 다운로드할 수 있습니다.
+                          </p>
+                        </div>
+
+                        <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
+                          <div className="max-h-[700px] space-y-2 overflow-y-auto rounded-xl border border-gray-800 bg-gray-900 p-3">
+                            {templateFiles.map((file) => {
+                              const active = selectedTemplateFile?.path === file.path;
+                              return (
+                                <button
+                                  key={file.path}
+                                  onClick={() => setSelectedTemplateFilePath(file.path)}
+                                  className={
+                                    "w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors " +
+                                    (active
+                                      ? "border-emerald-500 bg-emerald-500/10 text-white"
+                                      : "border-gray-800 bg-gray-950 text-gray-300 hover:border-gray-600")
+                                  }
+                                >
+                                  {file.path}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          <div className="overflow-hidden rounded-xl border border-gray-800 bg-gray-900">
+                            {selectedTemplateFile ? (
+                              <>
+                                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-800 bg-gray-950 px-4 py-3">
+                                  <div>
+                                    <p className="text-sm font-medium text-white">{selectedTemplateFile.path}</p>
+                                    <p className="mt-1 text-xs text-gray-500">
+                                      {(selectedTemplateFile.content.length / 1024).toFixed(1)} KB
+                                    </p>
+                                  </div>
+
+                                  <div className="flex flex-wrap gap-2">
+                                    <button
+                                      onClick={() => void handleCopyText(selectedTemplateFile.content)}
+                                      className="rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800"
+                                    >
+                                      파일 내용 복사
+                                    </button>
+
+                                    <button
+                                      onClick={() => handleDownloadTextFile(selectedTemplateFile.path, selectedTemplateFile.content)}
+                                      className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
+                                    >
+                                      파일 다운로드
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <pre className="max-h-[640px] overflow-auto p-4 text-xs leading-6 text-gray-300">
+                                  {selectedTemplateFile.content}
+                                </pre>
+                              </>
+                            ) : (
+                              <div className="p-6 text-sm text-gray-400">표시할 템플릿 파일이 없습니다.</div>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ) : null}
+                  ) : null}
 
-                {selectedTab === "json" ? (
-                  <div className="mt-5 space-y-4">
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => void handleCopyText(analysisJson)}
-                        className="rounded-lg border border-gray-700 bg-gray-950 px-4 py-2 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800"
-                      >
-                        JSON 복사
-                      </button>
-                      <button
-                        onClick={() => handleDownloadTextFile("analysis-model.json", analysisJson, "application/json;charset=utf-8")}
-                        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500"
-                      >
-                        JSON 다운로드
-                      </button>
-                    </div>
+                  {selectedTab === "json" ? (
+                    <div className="mt-6 space-y-4">
+                      <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => void handleCopyText(analysisJson)}
+                            className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800"
+                          >
+                            JSON 복사
+                          </button>
+                          <button
+                            onClick={() => handleDownloadTextFile("analysis-model.json", analysisJson, "application/json;charset=utf-8")}
+                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500"
+                          >
+                            JSON 다운로드
+                          </button>
+                        </div>
+                      </div>
 
-                    <div className="overflow-hidden rounded-xl border border-gray-800 bg-gray-950">
-                      <pre className="overflow-x-auto p-4 text-xs leading-6 text-gray-300">{analysisJson}</pre>
+                      <div className="overflow-hidden rounded-xl border border-gray-800 bg-gray-950">
+                        <pre className="overflow-x-auto p-4 text-xs leading-6 text-gray-300">{analysisJson}</pre>
+                      </div>
                     </div>
-                  </div>
-                ) : null}
-              </section>
+                  ) : null}
+                </section>
+              </>
             ) : null}
           </>
         ) : null}
@@ -914,7 +973,7 @@ export default function App() {
         {inputMode === "folder" ? (
           <>
             <section className="rounded-2xl border border-gray-800 bg-gray-900 p-6">
-              <h2 className="text-lg font-semibold text-gray-100">2. 로컬 폴더 선택</h2>
+              <h2 className="text-lg font-semibold text-gray-100">로컬 폴더 PDF 문서화</h2>
               <p className="mt-2 text-sm text-gray-400">
                 텍스트 파일만 읽어 PDF 문서로 정리합니다. node_modules, .git, 이미지/바이너리, 1MB 초과 파일은 자동 제외됩니다.
               </p>
@@ -966,21 +1025,11 @@ export default function App() {
                   {errorMsg}
                 </div>
               ) : null}
-
-              {folderFiles.length > 0 ? (
-                <div className="mt-4 text-sm text-emerald-300">
-                  {folderFiles.length}개 텍스트 파일 준비 완료
-                </div>
-              ) : null}
             </section>
 
             {folderFiles.length > 0 ? (
               <section className="rounded-2xl border border-gray-800 bg-gray-900 p-6">
-                <h2 className="text-lg font-semibold text-gray-100">3. 파일 목록</h2>
-                <p className="mt-2 text-sm text-gray-400">
-                  PDF 문서화 대상 텍스트 파일 목록입니다.
-                </p>
-
+                <h2 className="text-lg font-semibold text-gray-100">파일 목록</h2>
                 <div className="mt-4 max-h-80 space-y-1 overflow-y-auto rounded-xl border border-gray-800 bg-gray-950 p-3">
                   {folderFiles.map((file) => (
                     <div
@@ -999,10 +1048,7 @@ export default function App() {
 
             {folderPdfs.length > 0 ? (
               <section className="rounded-2xl border border-gray-800 bg-gray-900 p-6">
-                <h2 className="text-lg font-semibold text-gray-100">4. 폴더 PDF 문서 미리보기</h2>
-                <p className="mt-2 text-sm text-gray-400">
-                  원하는 문서를 선택한 뒤 브라우저 인쇄 기능으로 PDF 저장할 수 있습니다.
-                </p>
+                <h2 className="text-lg font-semibold text-gray-100">폴더 PDF 문서 미리보기</h2>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   {folderPdfs.map((pdf) => {
