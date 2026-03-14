@@ -251,17 +251,44 @@ function prettyPrintHtml(html: string): string {
 function scoreRepresentativeElement(element: Element): number {
   const tag = element.tagName.toLowerCase();
   const className = (element.getAttribute("class") || "").toLowerCase();
+  const id = (element.getAttribute("id") || "").toLowerCase();
   const textLength = compactWhitespace(getElementLabel(element)).length;
   const childCount = element.children.length;
   const outerLength = element.outerHTML.length;
 
   let score = 0;
+
   score += Math.min(childCount, 30) * 2;
   score += Math.min(textLength, 400) / 25;
   score += Math.min(outerLength, 12000) / 600;
-  if (["header", "nav", "main", "aside", "footer", "section", "article"].includes(tag)) score += 12;
-  if (/sidebar|menu|nav|header|footer|content|main|container|wrap|inner|panel|card|widget|table|chart|graph|list|item|banner|hero/.test(className)) score += 10;
-  if (element.matches("[role='dialog'],table,canvas,svg,.card,.panel,.tile,[class*='card'],[class*='chart'],[class*='table']")) score += 8;
+
+  if (["header", "nav", "main", "aside", "footer", "section", "article", "form", "table"].includes(tag)) {
+    score += 12;
+  }
+
+  if (/sidebar|menu|nav|header|footer|content|main|container|wrap|inner|panel|card|widget|table|chart|graph|list|item|banner|hero|form|search|filter/.test(className)) {
+    score += 10;
+  }
+
+  if (/content|main|table|form|search|list|dashboard/.test(id)) {
+    score += 8;
+  }
+
+  if (
+    element.matches(
+      "[role='dialog'],table,form,canvas,svg,.card,.panel,.tile,[class*='card'],[class*='chart'],[class*='table'],[class*='form'],[class*='search']"
+    )
+  ) {
+    score += 8;
+  }
+
+  // 잡음 요소 감점
+  if (/pace|toast|spinner|loading|loader|backdrop|tooltip|modal|alert/.test(className)) {
+    score -= 12;
+  }
+  if (/pace|toast|spinner|loading|loader|backdrop|tooltip|modal|alert/.test(id)) {
+    score -= 10;
+  }
 
   return score;
 }
