@@ -1,4 +1,7 @@
 import { useMemo, useRef, useState } from "react";
+import ModeSelector from "@/components/ModeSelector";
+import StatusMessage from "@/components/StatusMessage";
+import PdfPreviewPanel from "@/components/PdfPreviewPanel";
 import JSZip from "jszip";
 import type { AnalysisModel } from "@/types/analysis";
 import { analyzeSnapshot } from "@/utils/analyzer/analyzeSnapshot";
@@ -449,44 +452,7 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-7xl space-y-6 px-6 py-8">
-        <section className="rounded-2xl border border-gray-800 bg-gray-900 p-6">
-          <h2 className="text-lg font-semibold text-gray-100">1. 입력 모드 선택</h2>
-          <p className="mt-2 text-sm text-gray-400">
-            사이트를 분석해 템플릿 초안을 만들거나, 로컬 폴더의 코드 파일을 읽어 PDF 문서 형태로 정리할 수 있습니다.
-          </p>
-
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <button
-              onClick={() => setInputMode("website")}
-              className={
-                "rounded-xl border p-4 text-left transition-colors " +
-                (inputMode === "website"
-                  ? "border-blue-500 bg-blue-500/10"
-                  : "border-gray-800 bg-gray-950 hover:border-gray-600")
-              }
-            >
-              <p className="font-medium text-white">사이트 분석 / 템플릿 생성</p>
-              <p className="mt-1 text-sm text-gray-400">
-                Railway Puppeteer API로 렌더링 결과를 수집하고 JSON, 리포트, 템플릿 초안을 생성합니다.
-              </p>
-            </button>
-
-            <button
-              onClick={() => setInputMode("folder")}
-              className={
-                "rounded-xl border p-4 text-left transition-colors " +
-                (inputMode === "folder"
-                  ? "border-emerald-500 bg-emerald-500/10"
-                  : "border-gray-800 bg-gray-950 hover:border-gray-600")
-              }
-            >
-              <p className="font-medium text-white">로컬 폴더 PDF 문서화</p>
-              <p className="mt-1 text-sm text-gray-400">
-                압축을 풀어둔 코드 폴더나 로컬 프로젝트 폴더를 선택해 파일별 PDF 문서로 정리합니다.
-              </p>
-            </button>
-          </div>
-        </section>
+        <ModeSelector inputMode={inputMode} onChangeMode={setInputMode} />
 
         {inputMode === "website" ? (
           <>
@@ -519,17 +485,7 @@ export default function App() {
                 </button>
               </div>
 
-              {progress ? (
-                <div className="mt-4 rounded-xl border border-gray-800 bg-gray-950 p-4 text-sm text-gray-300">
-                  {progress}
-                </div>
-              ) : null}
-
-              {errorMsg ? (
-                <div className="mt-4 rounded-xl border border-red-700 bg-red-900/30 p-4 text-sm text-red-300">
-                  {errorMsg}
-                </div>
-              ) : null}
+              <StatusMessage progress={progress} errorMsg={errorMsg} />
             </section>
 
             {analysis ? (
@@ -621,38 +577,15 @@ export default function App() {
                       </button>
                     </div>
 
-                    <div className="grid gap-3 md:grid-cols-2">
-                      {reportPdfs.map((pdf) => {
-                        const active = selectedReportPdf?.id === pdf.id;
-                        return (
-                          <button
-                            key={pdf.id}
-                            onClick={() => setSelectedReportPdfId(pdf.id)}
-                            className={
-                              "rounded-xl border p-4 text-left transition-colors " +
-                              (active
-                                ? "border-blue-500 bg-blue-500/10"
-                                : "border-gray-800 bg-gray-950 hover:border-gray-600")
-                            }
-                          >
-                            <p className="font-medium text-white">{pdf.name}</p>
-                            <p className="mt-1 text-xs text-gray-400">
-                              {pdf.fileCount}개 파일 / {pdf.pageCount}페이지
-                            </p>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {selectedReportPdf ? (
-                      <div className="overflow-hidden rounded-xl border border-gray-800 bg-white">
-                        <iframe
-                          title="report preview"
-                          srcDoc={reportPreviewHtml}
-                          className="h-[900px] w-full bg-white"
-                        />
-                      </div>
-                    ) : null}
+                    <PdfPreviewPanel
+                      title="리포트 문서 미리보기"
+                      pdfs={reportPdfs}
+                      selectedPdfId={selectedReportPdfId}
+                      onSelectPdf={setSelectedReportPdfId}
+                      previewHtml={reportPreviewHtml}
+                      accent="blue"
+                      iframeHeight="900px"
+                    />
                   </div>
                 ) : null}
 
@@ -837,17 +770,7 @@ export default function App() {
                 </button>
               </div>
 
-              {progress ? (
-                <div className="mt-4 rounded-xl border border-gray-800 bg-gray-950 p-4 text-sm text-gray-300">
-                  {progress}
-                </div>
-              ) : null}
-
-              {errorMsg ? (
-                <div className="mt-4 rounded-xl border border-red-700 bg-red-900/30 p-4 text-sm text-red-300">
-                  {errorMsg}
-                </div>
-              ) : null}
+              <StatusMessage progress={progress} errorMsg={errorMsg} />
 
               {folderFiles.length > 0 ? (
                 <div className="mt-4 text-sm text-emerald-300">
@@ -880,45 +803,16 @@ export default function App() {
             ) : null}
 
             {folderPdfs.length > 0 ? (
-              <section className="rounded-2xl border border-gray-800 bg-gray-900 p-6">
-                <h2 className="text-lg font-semibold text-gray-100">4. 폴더 PDF 문서 미리보기</h2>
-                <p className="mt-2 text-sm text-gray-400">
-                  원하는 문서를 선택한 뒤 브라우저 인쇄 기능으로 PDF 저장할 수 있습니다.
-                </p>
-
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  {folderPdfs.map((pdf) => {
-                    const active = selectedFolderPdf?.id === pdf.id;
-                    return (
-                      <button
-                        key={pdf.id}
-                        onClick={() => setSelectedFolderPdfId(pdf.id)}
-                        className={
-                          "rounded-xl border p-4 text-left transition-colors " +
-                          (active
-                            ? "border-emerald-500 bg-emerald-500/10"
-                            : "border-gray-800 bg-gray-950 hover:border-gray-600")
-                        }
-                      >
-                        <p className="font-medium text-white">{pdf.name}</p>
-                        <p className="mt-1 text-xs text-gray-400">
-                          {pdf.fileCount}개 파일 / {pdf.pageCount}페이지
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {selectedFolderPdf ? (
-                  <div className="mt-5 overflow-hidden rounded-xl border border-gray-800 bg-white">
-                    <iframe
-                      title="folder pdf preview"
-                      srcDoc={folderPreviewHtml}
-                      className="h-[900px] w-full bg-white"
-                    />
-                  </div>
-                ) : null}
-              </section>
+              <PdfPreviewPanel
+                title="4. 폴더 PDF 문서 미리보기"
+                description="원하는 문서를 선택한 뒤 브라우저 인쇄 기능으로 PDF 저장할 수 있습니다."
+                pdfs={folderPdfs}
+                selectedPdfId={selectedFolderPdfId}
+                onSelectPdf={setSelectedFolderPdfId}
+                previewHtml={folderPreviewHtml}
+                accent="emerald"
+                iframeHeight="900px"
+              />
             ) : null}
           </>
         ) : null}
