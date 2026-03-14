@@ -1,5 +1,21 @@
 export type PageType = "landing" | "dashboard" | "blog" | "commerce" | "generic";
 
+export type BlockKind =
+  | "header"
+  | "topbar"
+  | "sidebar"
+  | "hero"
+  | "filter-bar"
+  | "search-form"
+  | "stats-grid"
+  | "card-grid"
+  | "table"
+  | "list"
+  | "toast"
+  | "modal"
+  | "footer"
+  | "generic";
+
 export interface LayoutModel {
   hasHeader: boolean;
   hasNav: boolean;
@@ -39,6 +55,18 @@ export interface RepresentativeBlockModel {
   markup: string;
 }
 
+export interface BlockSchema {
+  id: string;
+  kind: BlockKind;
+  descriptor: string;
+  label: string;
+  confidence: number;
+  childrenCount: number;
+  sampleText?: string;
+  repeatedItemSignature?: string;
+  markup: string;
+}
+
 export interface AnalysisModel {
   sourceUrl: string;
   resolvedUrl: string;
@@ -51,6 +79,7 @@ export interface AnalysisModel {
   repeatedPatterns: RepeatedPatternModel[];
   domOutline: string[];
   representativeBlocks: RepresentativeBlockModel[];
+  blockSchemas: BlockSchema[];
   notes: string[];
 }
 

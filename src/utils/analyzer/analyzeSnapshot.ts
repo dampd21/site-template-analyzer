@@ -1,5 +1,7 @@
 import type {
   AnalysisModel,
+  BlockKind,
+  BlockSchema,
   DesignTokenModel,
   LayoutModel,
   PageType,
@@ -165,6 +167,7 @@ function buildDomOutline(doc: Document): string[] {
     const bits = [label ? `text=${label.slice(0, 70)}` : "", `children=${childrenCount}`]
       .filter(Boolean)
       .join(" | ");
+
     lines.push(`${" ".repeat(depth)}- ${getElementDescriptor(element)}${bits ? ` :: ${bits}` : ""}`);
 
     Array.from(element.children)
@@ -215,7 +218,9 @@ function collectRepeatedPatterns(doc: Document): RepeatedPatternModel[] {
 
 function cleanMarkupClone(root: Element): Element {
   const clone = root.cloneNode(true) as Element;
+
   clone.querySelectorAll("script,noscript,style,template").forEach((node) => node.remove());
+
   clone.querySelectorAll("*").forEach((node) => {
     Array.from(node.attributes).forEach((attribute) => {
       const name = attribute.name.toLowerCase();
@@ -241,6 +246,7 @@ function cleanMarkupClone(root: Element): Element {
       }
     });
   });
+
   return clone;
 }
 
@@ -282,7 +288,6 @@ function scoreRepresentativeElement(element: Element): number {
     score += 8;
   }
 
-  // 잡음 요소 감점
   if (/pace|toast|spinner|loading|loader|backdrop|tooltip|modal|alert/.test(className)) {
     score -= 12;
   }
@@ -306,8 +311,9 @@ function buildRepresentativeBlocks(doc: Document): RepresentativeBlockModel[] {
     "section",
     "article",
     "table",
+    "form",
     "[role='dialog']",
-    ".card,.panel,.tile,[class*='card'],[class*='panel'],[class*='widget'],[class*='chart'],[class*='table'],[class*='sidebar']"
+    ".card,.panel,.tile,[class*='card'],[class*='panel'],[class*='widget'],[class*='chart'],[class*='table'],[class*='sidebar'],[class*='search'],[class*='filter']"
   ];
 
   selectors.forEach((selector) => {
@@ -393,6 +399,82 @@ function detectPageType(doc: Document, layout: LayoutModel): PageType {
   return "generic";
 }
 
+function detectBlockKind(block: RepresentativeBlockModel, layout: LayoutModel): { kind: BlockKind; confidence: number } {
+  const source = `${block.descriptor} ${block.label} ${block.markup}`.toLowerCase();
+
+  if (/sidebar|aside|sidemenu|menu/.test(source)) {
+    return { kind: "sidebar", confidence: 0.92 };
+  }
+
+  if (/header|topbar|navbar|gnb/.test(source)) {
+    return { kind: "header", confidence: 0.9 };
+  }
+
+  if (/hero|banner|main visual/.test(source)) {
+    return { kind: "hero", confidence: 0.82 };
+  }
+
+  if (/form|input|select|search|filter|keyword/.test(source)) {
+    return { kind: "search-form", confidence: 0.88 };
+  }
+
+  if (/table|thead|tbody|tr|td|th/.test(source)) {
+    return { kind: "table", confidence: 0.96 };
+  }
+
+  if (/toast|alarm|notice|alert/.test(source)) {
+    return { kind: "toast", confidence: 0.85 };
+  }
+
+  if (/card|panel|widget|summary|stat/.test(source)) {
+    return { kind: "card-grid", confidence: 0.75 };
+  }
+
+  if (/list|item|ul|ol|li/.test(source)) {
+    return { kind: "list", confidence: 0.72 };
+  }
+
+  if (/footer/.test(source) || layout.hasFooter) {
+    return { kind: "footer", confidence: 0.65 };
+  }
+
+  return { kind: "generic", confidence: 0.5 };
+}
+
+function findRepeatedSignatureForBlock(
+  block: RepresentativeBlockModel,
+  repeatedPatterns: RepeatedPatternModel[]
+): string | undefined {
+  const descriptor = block.descriptor.toLowerCase();
+  const matched = repeatedPatterns.find((pattern) =>
+    pattern.parent.toLowerCase().includes(descriptor) ||
+    descriptor.includes(pattern.parent.toLowerCase())
+  );
+  return matched?.signature;
+}
+
+function buildBlockSchemas(
+  layout: LayoutModel,
+  representativeBlocks: RepresentativeBlockModel[],
+  repeatedPatterns: RepeatedPatternModel[]
+): BlockSchema[] {
+  return representativeBlocks.map((block, index) => {
+    const { kind, confidence } = detectBlockKind(block, layout);
+
+    return {
+      id: `block-${index + 1}`,
+      kind,
+      descriptor: block.descriptor,
+      label: block.label || `block-${index + 1}`,
+      confidence,
+      childrenCount: block.childrenCount,
+      repeatedItemSignature: findRepeatedSignatureForBlock(block, repeatedPatterns),
+      markup: block.markup,
+      sampleText: block.label
+    };
+  });
+}
+
 export function analyzeSnapshot(snapshot: SnapshotInput): AnalysisModel {
   const parser = new DOMParser();
   const doc = parser.parseFromString(snapshot.html, "text/html");
@@ -402,6 +484,7 @@ export function analyzeSnapshot(snapshot: SnapshotInput): AnalysisModel {
   const sections = buildSections(doc);
   const repeatedPatterns = collectRepeatedPatterns(doc);
   const representativeBlocks = buildRepresentativeBlocks(doc);
+  const blockSchemas = buildBlockSchemas(layout, representativeBlocks, repeatedPatterns);
   const domOutline = buildDomOutline(doc);
   const frameworkHints = detectFrameworkHints(snapshot.html, doc);
   const pageType = detectPageType(doc, layout);
@@ -418,6 +501,7 @@ export function analyzeSnapshot(snapshot: SnapshotInput): AnalysisModel {
     repeatedPatterns,
     domOutline,
     representativeBlocks,
+    blockSchemas,
     notes: [
       "이 분석 결과는 템플릿 초안 생성용 구조 데이터로도 사용됩니다.",
       "현재 버전은 규칙 기반 분류이며, 이후 블록 스키마와 생성 품질을 더 개선할 수 있습니다."
