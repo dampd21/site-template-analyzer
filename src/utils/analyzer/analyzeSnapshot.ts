@@ -43,7 +43,7 @@ function getElementLabel(element: Element | null): string {
 
   for (const candidate of candidates) {
     const normalized = compactWhitespace(candidate);
-    if (normalized) return normalized.slice(0, 140);
+    if (normalized) return normalized.slice(0, 160);
   }
 
   return "";
@@ -96,9 +96,9 @@ function buildLayout(doc: Document): LayoutModel {
     doc.querySelector("table,[class*='table']")
       ? "테이블 또는 표형 데이터 영역 존재"
       : "테이블 데이터 영역이 뚜렷하지 않음",
-    doc.querySelector("canvas,svg,[class*='chart'],[class*='graph']")
-      ? "차트 / 그래프 영역 존재"
-      : "차트 영역이 뚜렷하지 않음",
+    doc.querySelector("form,input,select,textarea,[class*='search'],[class*='filter']")
+      ? "검색 / 필터 / 폼 영역 존재"
+      : "검색 / 필터 구조가 뚜렷하지 않음",
     doc.querySelector(".card,.panel,.tile,[class*='card'],[class*='panel']")
       ? "카드 / 패널형 위젯 구조 존재"
       : "카드 구조가 뚜렷하지 않음"
@@ -135,7 +135,7 @@ function buildTokens(doc: Document): DesignTokenModel {
 
 function buildSections(doc: Document): SectionModel[] {
   const candidates = Array.from(
-    doc.querySelectorAll("header, nav, main, section, article, aside, footer, div")
+    doc.querySelectorAll("header, nav, main, section, article, aside, footer, div, form, table")
   );
 
   return take(
@@ -153,7 +153,7 @@ function buildSections(doc: Document): SectionModel[] {
         childrenCount: element.children.length
       }))
       .filter((section) => Boolean(section.descriptor)),
-    80
+    100
   );
 }
 
@@ -161,7 +161,7 @@ function buildDomOutline(doc: Document): string[] {
   const lines: string[] = [];
 
   function visit(element: Element, depth: number) {
-    if (lines.length >= 220 || depth > 6) return;
+    if (lines.length >= 240 || depth > 6) return;
     const label = getElementLabel(element);
     const childrenCount = element.children.length;
     const bits = [label ? `text=${label.slice(0, 70)}` : "", `children=${childrenCount}`]
@@ -186,7 +186,7 @@ function collectRepeatedPatterns(doc: Document): RepeatedPatternModel[] {
   const patterns = new Map<string, RepeatedPatternModel>();
 
   Array.from(doc.querySelectorAll("*"))
-    .slice(0, 1200)
+    .slice(0, 1400)
     .forEach((parent) => {
       const groups = new Map<string, number>();
 
@@ -213,7 +213,7 @@ function collectRepeatedPatterns(doc: Document): RepeatedPatternModel[] {
 
   return Array.from(patterns.values())
     .sort((a, b) => b.count - a.count || a.signature.localeCompare(b.signature))
-    .slice(0, 30);
+    .slice(0, 40);
 }
 
 function cleanMarkupClone(root: Element): Element {
@@ -254,6 +254,14 @@ function prettyPrintHtml(html: string): string {
   return html.replace(/></g, ">\n<").replace(/\n{3,}/g, "\n\n").trim();
 }
 
+function isNoiseElement(element: Element): boolean {
+  const className = (element.getAttribute("class") || "").toLowerCase();
+  const id = (element.getAttribute("id") || "").toLowerCase();
+  const descriptor = `${element.tagName.toLowerCase()} ${className} ${id}`;
+
+  return /pace|toast|spinner|loading|loader|backdrop|tooltip|modal|alert|toast-container|sr-only/.test(descriptor);
+}
+
 function scoreRepresentativeElement(element: Element): number {
   const tag = element.tagName.toLowerCase();
   const className = (element.getAttribute("class") || "").toLowerCase();
@@ -264,35 +272,32 @@ function scoreRepresentativeElement(element: Element): number {
 
   let score = 0;
 
-  score += Math.min(childCount, 30) * 2;
-  score += Math.min(textLength, 400) / 25;
-  score += Math.min(outerLength, 12000) / 600;
+  score += Math.min(childCount, 36) * 2;
+  score += Math.min(textLength, 500) / 20;
+  score += Math.min(outerLength, 16000) / 500;
 
   if (["header", "nav", "main", "aside", "footer", "section", "article", "form", "table"].includes(tag)) {
+    score += 16;
+  }
+
+  if (/sidebar|menu|nav|header|footer|content|main|container|wrap|inner|panel|card|widget|table|chart|graph|list|item|banner|hero|form|search|filter|stats|summary/.test(className)) {
     score += 12;
   }
 
-  if (/sidebar|menu|nav|header|footer|content|main|container|wrap|inner|panel|card|widget|table|chart|graph|list|item|banner|hero|form|search|filter/.test(className)) {
+  if (/content|main|table|form|search|list|dashboard|filter|result/.test(id)) {
     score += 10;
-  }
-
-  if (/content|main|table|form|search|list|dashboard/.test(id)) {
-    score += 8;
   }
 
   if (
     element.matches(
-      "[role='dialog'],table,form,canvas,svg,.card,.panel,.tile,[class*='card'],[class*='chart'],[class*='table'],[class*='form'],[class*='search']"
+      "table,form,main,section,article,aside,.card,.panel,.tile,[class*='card'],[class*='chart'],[class*='table'],[class*='form'],[class*='search'],[class*='filter'],[class*='stats']"
     )
   ) {
-    score += 8;
+    score += 10;
   }
 
-  if (/pace|toast|spinner|loading|loader|backdrop|tooltip|modal|alert/.test(className)) {
-    score -= 12;
-  }
-  if (/pace|toast|spinner|loading|loader|backdrop|tooltip|modal|alert/.test(id)) {
-    score -= 10;
+  if (isNoiseElement(element)) {
+    score -= 25;
   }
 
   return score;
@@ -312,13 +317,12 @@ function buildRepresentativeBlocks(doc: Document): RepresentativeBlockModel[] {
     "article",
     "table",
     "form",
-    "[role='dialog']",
-    ".card,.panel,.tile,[class*='card'],[class*='panel'],[class*='widget'],[class*='chart'],[class*='table'],[class*='sidebar'],[class*='search'],[class*='filter']"
+    ".card,.panel,.tile,[class*='card'],[class*='panel'],[class*='widget'],[class*='chart'],[class*='table'],[class*='sidebar'],[class*='search'],[class*='filter'],[class*='stats'],[class*='summary'],[class*='result']"
   ];
 
   selectors.forEach((selector) => {
     doc.querySelectorAll(selector).forEach((element) => {
-      if (element instanceof Element) candidates.push(element);
+      if (element instanceof Element && !isNoiseElement(element)) candidates.push(element);
     });
   });
 
@@ -332,14 +336,14 @@ function buildRepresentativeBlocks(doc: Document): RepresentativeBlockModel[] {
       return true;
     })
     .sort((a, b) => scoreRepresentativeElement(b) - scoreRepresentativeElement(a))
-    .slice(0, 12)
+    .slice(0, 14)
     .map((element) => {
       const clone = cleanMarkupClone(element);
       return {
         descriptor: getElementDescriptor(element),
         label: getElementLabel(element),
         childrenCount: element.children.length,
-        markup: truncateText(prettyPrintHtml(clone.outerHTML), 14000)
+        markup: truncateText(prettyPrintHtml(clone.outerHTML), 16000)
       };
     });
 }
@@ -388,50 +392,65 @@ function detectPageType(doc: Document, layout: LayoutModel): PageType {
   const hasHero = Boolean(doc.querySelector("[class*='hero'], .banner, main section:first-child"));
   const hasCards = Boolean(doc.querySelector(".card,.tile,.panel,[class*='card']"));
   const hasTable = Boolean(doc.querySelector("table,[class*='table']"));
-  const hasChart = Boolean(doc.querySelector("canvas,svg,[class*='chart'],[class*='graph']"));
+  const hasForm = Boolean(doc.querySelector("form,input,select,[class*='search'],[class*='filter']"));
   const articleCount = doc.querySelectorAll("article").length;
   const productHints = doc.querySelectorAll("[class*='product'], [class*='price'], [data-price]").length;
 
-  if (layout.hasSidebar && (hasTable || hasChart || hasCards)) return "dashboard";
+  if ((layout.hasSidebar || hasForm) && (hasTable || hasCards)) return "dashboard";
   if (productHints >= 2) return "commerce";
   if (articleCount >= 2) return "blog";
   if (hasHero) return "landing";
   return "generic";
 }
 
-function detectBlockKind(block: RepresentativeBlockModel, layout: LayoutModel): { kind: BlockKind; confidence: number } {
+function detectBlockKind(
+  block: RepresentativeBlockModel,
+  layout: LayoutModel,
+  repeatedPatterns: RepeatedPatternModel[]
+): { kind: BlockKind; confidence: number } {
   const source = `${block.descriptor} ${block.label} ${block.markup}`.toLowerCase();
 
+  const relatedPattern = repeatedPatterns.find((pattern) =>
+    pattern.parent.toLowerCase().includes(block.descriptor.toLowerCase())
+  );
+
   if (/sidebar|aside|sidemenu|menu/.test(source)) {
-    return { kind: "sidebar", confidence: 0.92 };
+    return { kind: "sidebar", confidence: 0.94 };
   }
 
   if (/header|topbar|navbar|gnb/.test(source)) {
-    return { kind: "header", confidence: 0.9 };
+    return { kind: "header", confidence: 0.92 };
   }
 
   if (/hero|banner|main visual/.test(source)) {
-    return { kind: "hero", confidence: 0.82 };
+    return { kind: "hero", confidence: 0.84 };
   }
 
-  if (/form|input|select|search|filter|keyword/.test(source)) {
-    return { kind: "search-form", confidence: 0.88 };
+  if (/form|input|select|search|filter|keyword|date-picker|datepicker/.test(source)) {
+    return { kind: "search-form", confidence: 0.9 };
   }
 
   if (/table|thead|tbody|tr|td|th/.test(source)) {
-    return { kind: "table", confidence: 0.96 };
+    return { kind: "table", confidence: 0.97 };
   }
 
   if (/toast|alarm|notice|alert/.test(source)) {
-    return { kind: "toast", confidence: 0.85 };
+    return { kind: "toast", confidence: 0.82 };
   }
 
-  if (/card|panel|widget|summary|stat/.test(source)) {
-    return { kind: "card-grid", confidence: 0.75 };
+  if (/stats|summary|metric|count|total/.test(source)) {
+    return { kind: "stats-grid", confidence: 0.88 };
+  }
+
+  if (/card|panel|widget/.test(source)) {
+    if (relatedPattern?.count && relatedPattern.count >= 3) {
+      return { kind: "card-grid", confidence: 0.86 };
+    }
+    return { kind: "card-grid", confidence: 0.74 };
   }
 
   if (/list|item|ul|ol|li/.test(source)) {
-    return { kind: "list", confidence: 0.72 };
+    return { kind: "list", confidence: 0.74 };
   }
 
   if (/footer/.test(source) || layout.hasFooter) {
@@ -458,21 +477,22 @@ function buildBlockSchemas(
   representativeBlocks: RepresentativeBlockModel[],
   repeatedPatterns: RepeatedPatternModel[]
 ): BlockSchema[] {
-  return representativeBlocks.map((block, index) => {
-    const { kind, confidence } = detectBlockKind(block, layout);
-
-    return {
-      id: `block-${index + 1}`,
-      kind,
-      descriptor: block.descriptor,
-      label: block.label || `block-${index + 1}`,
-      confidence,
-      childrenCount: block.childrenCount,
-      repeatedItemSignature: findRepeatedSignatureForBlock(block, repeatedPatterns),
-      markup: block.markup,
-      sampleText: block.label
-    };
-  });
+  return representativeBlocks
+    .map((block, index) => {
+      const { kind, confidence } = detectBlockKind(block, layout, repeatedPatterns);
+      return {
+        id: `block-${index + 1}`,
+        kind,
+        descriptor: block.descriptor,
+        label: block.label || `block-${index + 1}`,
+        confidence,
+        childrenCount: block.childrenCount,
+        repeatedItemSignature: findRepeatedSignatureForBlock(block, repeatedPatterns),
+        markup: block.markup,
+        sampleText: block.label
+      };
+    })
+    .sort((a, b) => b.confidence - a.confidence || b.childrenCount - a.childrenCount);
 }
 
 export function analyzeSnapshot(snapshot: SnapshotInput): AnalysisModel {

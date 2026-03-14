@@ -2,7 +2,7 @@ import type { AnalysisModel } from "@/types/analysis";
 import type { FileData } from "@/utils/pdfGenerator";
 
 function normalizeBlocks(model: AnalysisModel) {
-  return model.blockSchemas.slice(0, 12).map((block, index) => ({
+  return model.blockSchemas.slice(0, 14).map((block, index) => ({
     id: block.id,
     kind: block.kind,
     title: block.label || `${block.kind}-${index + 1}`,
@@ -38,30 +38,42 @@ type Block = {
   repeatedItemSignature: string;
 };
 
+function StatsCard({ block, index }: { block: Block; index: number }) {
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+      <p className="text-xs uppercase tracking-wide text-slate-500">{block.kind}</p>
+      <h3 className="mt-2 text-lg font-semibold text-white">{block.title}</h3>
+      <p className="mt-3 text-2xl font-bold text-sky-300">{(block.childrenCount + index + 1) * 12}</p>
+      <p className="mt-2 text-sm text-slate-400">{block.description}</p>
+    </div>
+  );
+}
+
 function TemplateBlock({ block }: { block: Block }) {
   if (block.kind === "search-form" || block.kind === "filter-bar") {
     return (
       <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end">
-          <div className="flex-1">
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Search
-            </label>
-            <input
-              className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none"
-              placeholder={block.title}
-            />
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <select className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-200">
-              <option>전체</option>
-              <option>옵션 1</option>
-              <option>옵션 2</option>
-            </select>
-            <button className="rounded-xl bg-sky-500 px-4 py-3 text-sm font-medium text-white">
-              조회
-            </button>
-          </div>
+        <div className="mb-4">
+          <p className="text-xs uppercase tracking-wide text-slate-500">{block.kind}</p>
+          <h3 className="mt-1 text-lg font-semibold text-white">{block.title}</h3>
+        </div>
+        <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr_1fr_auto]">
+          <input
+            className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none"
+            placeholder="검색어를 입력하세요"
+          />
+          <select className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-200">
+            <option>전체</option>
+            <option>옵션 1</option>
+            <option>옵션 2</option>
+          </select>
+          <input
+            className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-white outline-none"
+            placeholder="기간 / 조건"
+          />
+          <button className="rounded-xl bg-sky-500 px-4 py-3 text-sm font-medium text-white">
+            조회
+          </button>
         </div>
       </section>
     );
@@ -83,17 +95,25 @@ function TemplateBlock({ block }: { block: Block }) {
           <table className="w-full border-collapse text-left text-sm">
             <thead className="bg-slate-950 text-slate-400">
               <tr>
-                <th className="px-4 py-3">컬럼 A</th>
-                <th className="px-4 py-3">컬럼 B</th>
-                <th className="px-4 py-3">컬럼 C</th>
+                <th className="px-4 py-3">이름</th>
+                <th className="px-4 py-3">상태</th>
+                <th className="px-4 py-3">메모</th>
+                <th className="px-4 py-3">액션</th>
               </tr>
             </thead>
             <tbody>
-              {[1, 2, 3, 4, 5].map((row) => (
+              {[1, 2, 3, 4, 5, 6].map((row) => (
                 <tr key={row} className="border-t border-slate-800 text-slate-200">
                   <td className="px-4 py-3">{block.title} #{row}</td>
+                  <td className="px-4 py-3">
+                    <span className="rounded-lg bg-emerald-500/20 px-2 py-1 text-xs text-emerald-300">정상</span>
+                  </td>
                   <td className="px-4 py-3">예시 데이터</td>
-                  <td className="px-4 py-3">children {block.childrenCount}</td>
+                  <td className="px-4 py-3">
+                    <button className="rounded-lg border border-slate-700 px-3 py-1 text-xs text-slate-200">
+                      보기
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -113,16 +133,21 @@ function TemplateBlock({ block }: { block: Block }) {
     );
   }
 
-  if (block.kind === "card-grid" || block.kind === "stats-grid" || block.kind === "list") {
+  if (block.kind === "list") {
     return (
-      <article className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-        <p className="text-xs uppercase tracking-wide text-slate-500">{block.kind}</p>
-        <h3 className="mt-2 text-lg font-semibold text-white">{block.title}</h3>
-        <p className="mt-2 text-sm text-slate-400">{block.description}</p>
-        <div className="mt-4 rounded-xl bg-slate-800/70 px-3 py-2 text-xs text-slate-300">
-          child count: {block.childrenCount}
+      <section className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
+        <div className="mb-4">
+          <p className="text-xs uppercase tracking-wide text-slate-500">List</p>
+          <h3 className="mt-1 text-lg font-semibold text-white">{block.title}</h3>
         </div>
-      </article>
+        <ul className="space-y-2">
+          {[1, 2, 3, 4].map((item) => (
+            <li key={item} className="rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-slate-300">
+              {block.title} item {item}
+            </li>
+          ))}
+        </ul>
+      </section>
     );
   }
 
@@ -144,7 +169,7 @@ function buildAppTsx(model: AnalysisModel): string {
   const isDashboardLike =
     model.pageType === "dashboard" ||
     model.layout.hasSidebar ||
-    model.blockSchemas.some((block) => ["table", "search-form", "sidebar"].includes(block.kind));
+    model.blockSchemas.some((block) => ["table", "search-form", "sidebar", "stats-grid"].includes(block.kind));
 
   return `import { siteMeta, blocks } from "./data/content";
 
@@ -152,8 +177,14 @@ ${renderBlockComponent()}
 
 export default function App() {
   const sidebarBlocks = blocks.filter((block) => block.kind === "sidebar" || block.kind === "list").slice(0, 6);
-  const topBlocks = blocks.filter((block) => block.kind === "toast");
-  const mainBlocks = blocks.filter((block) => block.kind !== "sidebar");
+  const noticeBlocks = blocks.filter((block) => block.kind === "toast");
+  const statsBlocks = blocks.filter((block) => block.kind === "stats-grid" || block.kind === "card-grid").slice(0, 4);
+  const formBlocks = blocks.filter((block) => block.kind === "search-form" || block.kind === "filter-bar");
+  const tableBlocks = blocks.filter((block) => block.kind === "table");
+  const listBlocks = blocks.filter((block) => block.kind === "list");
+  const genericBlocks = blocks.filter(
+    (block) => !["sidebar", "toast", "stats-grid", "card-grid", "search-form", "filter-bar", "table", "list"].includes(block.kind)
+  );
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -162,7 +193,7 @@ export default function App() {
           <p className="text-xs uppercase tracking-[0.2em] text-sky-400">Editable Template</p>
           <h1 className="mt-2 text-2xl font-bold">{siteMeta.title}</h1>
           <p className="mt-2 text-sm text-slate-400">
-            분석 기반으로 생성된 수정 가능한 템플릿 초안입니다. 원본 구조를 더 반영하도록 블록 단위로 재구성했습니다.
+            분석 기반으로 생성된 수정 가능한 템플릿 초안입니다. 블록 분류 결과를 바탕으로 관리형 화면 구조를 더 강하게 반영했습니다.
           </p>
         </div>
       </header>
@@ -178,7 +209,11 @@ export default function App() {
                 {block.title}
               </li>
             )) : (
-              <li className="rounded-lg bg-slate-800/60 px-3 py-2">메뉴 1</li>
+              <>
+                <li className="rounded-lg bg-slate-800/60 px-3 py-2">대시보드</li>
+                <li className="rounded-lg bg-slate-800/60 px-3 py-2">목록 조회</li>
+                <li className="rounded-lg bg-slate-800/60 px-3 py-2">설정</li>
+              </>
             )}
           </ul>
         </aside>`
@@ -188,9 +223,9 @@ export default function App() {
         <section className="space-y-6">
           <div className="rounded-2xl border border-slate-800 bg-gradient-to-br from-sky-500/15 to-violet-500/10 p-8">
             <p className="text-sm uppercase tracking-[0.2em] text-sky-300">Generated Layout</p>
-            <h2 className="mt-3 text-3xl font-bold text-white">원본 구조를 반영한 편집용 초안</h2>
+            <h2 className="mt-3 text-3xl font-bold text-white">원본 구조를 더 반영한 편집용 초안</h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">
-              감지된 블록 타입과 반복 패턴을 기준으로 레이아웃을 재구성했습니다. 필요에 따라 헤더, 검색영역, 표, 카드, 알림 영역을 자유롭게 수정하세요.
+              감지된 블록 타입과 반복 패턴을 바탕으로 통계 카드, 검색 필터, 표, 리스트, 알림 영역을 재구성했습니다.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <button className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-medium text-white">Primary Action</button>
@@ -198,36 +233,37 @@ export default function App() {
             </div>
           </div>
 
-          {topBlocks.map((block) => (
+          {noticeBlocks.map((block) => (
             <TemplateBlock key={block.id} block={block} />
           ))}
 
-          <div className="grid gap-4 xl:grid-cols-2">
-            {mainBlocks
-              .filter((block) => block.kind === "card-grid" || block.kind === "stats-grid" || block.kind === "list")
-              .map((block) => (
+          {statsBlocks.length > 0 ? (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {statsBlocks.map((block, index) => (
+                <StatsCard key={block.id} block={block} index={index} />
+              ))}
+            </div>
+          ) : null}
+
+          {formBlocks.map((block) => (
+            <TemplateBlock key={block.id} block={block} />
+          ))}
+
+          {tableBlocks.map((block) => (
+            <TemplateBlock key={block.id} block={block} />
+          ))}
+
+          {listBlocks.length > 0 ? (
+            <div className="grid gap-4 xl:grid-cols-2">
+              {listBlocks.map((block) => (
                 <TemplateBlock key={block.id} block={block} />
               ))}
-          </div>
+            </div>
+          ) : null}
 
-          {mainBlocks
-            .filter((block) => block.kind === "search-form" || block.kind === "filter-bar")
-            .map((block) => (
-              <TemplateBlock key={block.id} block={block} />
-            ))}
-
-          {mainBlocks
-            .filter((block) => block.kind === "table")
-            .map((block) => (
-              <TemplateBlock key={block.id} block={block} />
-            ))}
-
-          {mainBlocks
-            .filter((block) => !["sidebar", "card-grid", "stats-grid", "list", "search-form", "filter-bar", "table", "toast"].includes(block.kind))
-            .slice(0, 4)
-            .map((block) => (
-              <TemplateBlock key={block.id} block={block} />
-            ))}
+          {genericBlocks.slice(0, 4).map((block) => (
+            <TemplateBlock key={block.id} block={block} />
+          ))}
         </section>
       </main>
     </div>
