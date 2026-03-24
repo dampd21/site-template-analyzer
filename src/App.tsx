@@ -58,7 +58,7 @@ function shouldSkipPath(path: string): boolean {
 async function readTextWithEncodingFallback(file: File): Promise<string> {
   const buffer = await file.arrayBuffer();
   const utf8 = new TextDecoder("utf-8", { fatal: false }).decode(buffer);
-  const brokenCharCount = (utf8.match(/�/g) || []).length;
+  const brokenCharCount = (utf8.match(/\ufffd/g) || []).length;
 
   if (brokenCharCount === 0) {
     return utf8;
@@ -68,7 +68,7 @@ async function readTextWithEncodingFallback(file: File): Promise<string> {
   for (const encoding of fallbackEncodings) {
     try {
       const decoded = new TextDecoder(encoding, { fatal: false }).decode(buffer);
-      const decodedBrokenCharCount = (decoded.match(/�/g) || []).length;
+      const decodedBrokenCharCount = (decoded.match(/\ufffd/g) || []).length;
       if (decodedBrokenCharCount < brokenCharCount) {
         return decoded;
       }
@@ -104,102 +104,102 @@ function buildPrintableHtml(pdf: PdfResult): string {
   return `
   <!doctype html>
   <html lang="ko">
-    <head>
-      <meta charset="UTF-8" />
-      <title>${escapeHtml(pdf.name)}</title>
-      <style>
-        @page { size: A4; margin: 15mm; }
-        * { box-sizing: border-box; }
-        html, body {
-          margin: 0;
-          padding: 0;
-          background: #e5e7eb;
-          color: #111827;
-          font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-        }
-        body { padding: 24px; }
-        .toolbar {
-          max-width: 210mm;
-          margin: 0 auto 16px;
-          padding: 12px 16px;
-          background: #111827;
-          color: white;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-        .toolbar button {
-          border: 0;
-          border-radius: 10px;
-          background: #2563eb;
-          color: white;
-          padding: 10px 14px;
-          font-size: 13px;
-          cursor: pointer;
-        }
+  <head>
+    <meta charset="UTF-8" />
+    <title>${escapeHtml(pdf.name)}</title>
+    <style>
+      @page { size: A4; margin: 15mm; }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #e5e7eb;
+        color: #111827;
+        font-family: "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+      }
+      body { padding: 24px; }
+      .toolbar {
+        max-width: 210mm;
+        margin: 0 auto 16px;
+        padding: 12px 16px;
+        background: #111827;
+        color: white;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .toolbar button {
+        border: 0;
+        border-radius: 10px;
+        background: #2563eb;
+        color: white;
+        padding: 10px 14px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .page {
+        width: 180mm;
+        min-height: 267mm;
+        margin: 0 auto 16px;
+        background: white;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+        display: flex;
+        flex-direction: column;
+        page-break-after: always;
+      }
+      .page:last-child { page-break-after: auto; }
+      .page-header {
+        padding: 0 0 3mm;
+        border-bottom: 0.3mm solid #9ca3af;
+      }
+      .page-body { flex: 1; padding-top: 3mm; }
+      .file-path {
+        font-size: 9pt;
+        font-weight: 700;
+        word-break: break-all;
+      }
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        font-size: 9pt;
+        line-height: 1;
+        font-family: "D2Coding", "NanumGothicCoding", "Consolas", monospace;
+        tab-size: 4;
+      }
+      .page-footer {
+        padding-top: 3mm;
+        display: flex;
+        justify-content: center;
+        color: #6b7280;
+        font-size: 8pt;
+      }
+      @media print {
+        body { padding: 0; background: white; }
+        .toolbar { display: none; }
         .page {
-          width: 180mm;
-          min-height: 267mm;
-          margin: 0 auto 16px;
-          background: white;
-          box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-          display: flex;
-          flex-direction: column;
-          page-break-after: always;
-        }
-        .page:last-child { page-break-after: auto; }
-        .page-header {
-          padding: 0 0 3mm;
-          border-bottom: 0.3mm solid #9ca3af;
-        }
-        .page-body { flex: 1; padding-top: 3mm; }
-        .file-path {
-          font-size: 9pt;
-          font-weight: 700;
-          word-break: break-all;
-        }
-        pre {
+          width: auto;
+          min-height: auto;
           margin: 0;
-          white-space: pre-wrap;
-          word-break: break-word;
-          overflow-wrap: anywhere;
-          font-size: 9pt;
-          line-height: 1;
-          font-family: "D2Coding", "NanumGothicCoding", "Consolas", monospace;
-          tab-size: 4;
+          box-shadow: none;
         }
-        .page-footer {
-          padding-top: 3mm;
-          display: flex;
-          justify-content: center;
-          color: #6b7280;
-          font-size: 8pt;
-        }
-        @media print {
-          body { padding: 0; background: white; }
-          .toolbar { display: none; }
-          .page {
-            width: auto;
-            min-height: auto;
-            margin: 0;
-            box-shadow: none;
-          }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="toolbar">
-        <div>
-          <strong>${escapeHtml(pdf.name)}</strong><br />
-          <span>${pdf.fileCount}개 파일 / ${pdf.pageCount}페이지</span>
-        </div>
-        <button onclick="window.print()">인쇄 / PDF 저장</button>
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <div>
+        <strong>${escapeHtml(pdf.name)}</strong><br />
+        <span>${pdf.fileCount}개 파일 / ${pdf.pageCount}페이지</span>
       </div>
-      ${pagesHtml}
-    </body>
+      <button onclick="window.print()">인쇄 / PDF 저장</button>
+    </div>
+    ${pagesHtml}
+  </body>
   </html>
   `;
 }
@@ -242,6 +242,7 @@ export default function App() {
   const [status, setStatus] = useState<Status>("idle");
   const [progress, setProgress] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+
   const [websiteUrl, setWebsiteUrl] = useState("https://example.com");
   const [analysis, setAnalysis] = useState<AnalysisModel | null>(null);
   const [reportPdfs, setReportPdfs] = useState<PdfResult[]>([]);
@@ -250,13 +251,18 @@ export default function App() {
   const [selectedTemplateFilePath, setSelectedTemplateFilePath] = useState("");
   const [snapshotScreenshot, setSnapshotScreenshot] = useState<string>("");
   const [snapshotVia, setSnapshotVia] = useState<"external-api" | "direct" | "">("");
+
   const [folderFiles, setFolderFiles] = useState<FileData[]>([]);
   const [folderPdfs, setFolderPdfs] = useState<PdfResult[]>([]);
   const [selectedFolderPdfId, setSelectedFolderPdfId] = useState("");
+  const [selectedFilePaths, setSelectedFilePaths] = useState<Set<string>>(new Set());
+
   const [selectedTab, setSelectedTab] = useState<"overview" | "report" | "template" | "json">("overview");
   const [selectedReportPdfId, setSelectedReportPdfId] = useState("");
   const [selectedTemplatePdfId, setSelectedTemplatePdfId] = useState("");
+
   const folderInputRef = useRef<HTMLInputElement>(null);
+  const zipInputRef = useRef<HTMLInputElement>(null);
 
   const selectedReportPdf = useMemo(
     () => reportPdfs.find((pdf) => pdf.id === selectedReportPdfId) ?? reportPdfs[0] ?? null,
@@ -295,6 +301,34 @@ export default function App() {
 
   const analysisJson = useMemo(() => (analysis ? buildAnalysisJson(analysis) : ""), [analysis]);
 
+  // ── 선택된 파일만 필터 ──
+  const selectedFolderFiles = useMemo(
+    () => folderFiles.filter((f) => selectedFilePaths.has(f.path)),
+    [folderFiles, selectedFilePaths]
+  );
+
+  // ── 파일 선택 핸들러 ──
+  const handleToggleFile = (path: string) => {
+    setSelectedFilePaths((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    setSelectedFilePaths(new Set(folderFiles.map((f) => f.path)));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedFilePaths(new Set());
+  };
+
+  // ── 공통 유틸 ──
   const handleCopyText = async (value: string) => {
     try {
       await navigator.clipboard.writeText(value);
@@ -321,11 +355,9 @@ export default function App() {
       setErrorMsg("");
       setProgress("ZIP 파일 생성 중...");
       const zip = new JSZip();
-
       files.forEach((file) => {
         zip.file(file.path, file.content);
       });
-
       const blob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -375,6 +407,7 @@ export default function App() {
     handleDownloadTextFile("site-analysis-all.txt", combined);
   };
 
+  // ── 리셋 ──
   const resetWebsiteMode = () => {
     setAnalysis(null);
     setReportPdfs([]);
@@ -395,14 +428,19 @@ export default function App() {
     setFolderFiles([]);
     setFolderPdfs([]);
     setSelectedFolderPdfId("");
+    setSelectedFilePaths(new Set());
     setProgress("");
     setErrorMsg("");
     setStatus("idle");
     if (folderInputRef.current) {
       folderInputRef.current.value = "";
     }
+    if (zipInputRef.current) {
+      zipInputRef.current.value = "";
+    }
   };
 
+  // ── 웹사이트 분석 ──
   const handleAnalyzeWebsite = async () => {
     setStatus("analyzing");
     setErrorMsg("");
@@ -449,6 +487,7 @@ export default function App() {
     }
   };
 
+  // ── 폴더 선택 ──
   const handleFolderSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
@@ -459,6 +498,7 @@ export default function App() {
     setFolderFiles([]);
     setFolderPdfs([]);
     setSelectedFolderPdfId("");
+    setSelectedFilePaths(new Set());
 
     try {
       const items: FileData[] = [];
@@ -488,6 +528,7 @@ export default function App() {
 
       items.sort((a, b) => a.path.localeCompare(b.path));
       setFolderFiles(items);
+      setSelectedFilePaths(new Set(items.map((f) => f.path)));
       setProgress(`${items.length}개 텍스트 파일 읽기 완료`);
       setStatus("idle");
     } catch (error: unknown) {
@@ -497,21 +538,77 @@ export default function App() {
     }
   };
 
+  // ── ZIP 업로드 ──
+  const handleZipUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setStatus("reading");
+    setErrorMsg("");
+    setProgress("ZIP 파일을 읽는 중...");
+    setFolderFiles([]);
+    setFolderPdfs([]);
+    setSelectedFolderPdfId("");
+    setSelectedFilePaths(new Set());
+
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const items: FileData[] = [];
+      const entries = Object.entries(zip.files);
+      let processed = 0;
+
+      for (const [relativePath, zipEntry] of entries) {
+        if (zipEntry.dir) continue;
+        if (shouldSkipPath(relativePath)) continue;
+        if (isBinaryFile(relativePath)) continue;
+
+        try {
+          const text = await zipEntry.async("string");
+          if (text.length > 1024 * 1024) continue;
+          if (text.length === 0) continue;
+          items.push({ path: relativePath, content: text });
+        } catch {
+          // skip unreadable entry
+        }
+
+        processed++;
+        if (processed % 50 === 0) {
+          setProgress(`ZIP 읽는 중... (${processed}/${entries.length})`);
+        }
+      }
+
+      items.sort((a, b) => a.path.localeCompare(b.path));
+      setFolderFiles(items);
+      setSelectedFilePaths(new Set(items.map((f) => f.path)));
+      setProgress(`${items.length}개 텍스트 파일 읽기 완료 (ZIP)`);
+      setStatus("idle");
+    } catch (error: unknown) {
+      setStatus("error");
+      setProgress("");
+      setErrorMsg(error instanceof Error ? error.message : String(error));
+    }
+
+    if (zipInputRef.current) {
+      zipInputRef.current.value = "";
+    }
+  };
+
+  // ── 폴더 PDF 생성 (선택된 파일만) ──
   const handleGenerateFolderPdf = async () => {
-    if (folderFiles.length === 0) {
-      setErrorMsg("먼저 폴더를 선택해주세요.");
+    if (selectedFolderFiles.length === 0) {
+      setErrorMsg("PDF로 변환할 파일을 선택해주세요.");
       return;
     }
 
     setStatus("generating");
     setErrorMsg("");
-    setProgress("폴더 문서 PDF 생성 중...");
+    setProgress(`선택된 ${selectedFolderFiles.length}개 파일 PDF 생성 중...`);
 
     try {
-      const docs = generatePdfs(folderFiles, setProgress);
+      const docs = generatePdfs(selectedFolderFiles, setProgress);
       setFolderPdfs(docs);
       setSelectedFolderPdfId(docs[0]?.id ?? "");
-      setProgress("폴더 PDF 문서 준비 완료");
+      setProgress(`${selectedFolderFiles.length}개 파일 → PDF 문서 준비 완료`);
       setStatus("done");
     } catch (error: unknown) {
       setStatus("error");
@@ -520,6 +617,9 @@ export default function App() {
     }
   };
 
+  // ══════════════════════════════════════════
+  // JSX
+  // ══════════════════════════════════════════
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
       <header className="sticky top-0 z-10 border-b border-gray-800 bg-gray-900/80 backdrop-blur">
@@ -532,15 +632,15 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-7xl space-y-6 px-6 py-8">
+        {/* ── 입력 모드 선택 ── */}
         <section className="rounded-2xl border border-gray-800 bg-gray-900 p-6">
           <div className="grid gap-4 lg:grid-cols-[1.1fr_2fr]">
             <div>
               <h2 className="text-lg font-semibold text-gray-100">입력 모드 선택</h2>
               <p className="mt-2 text-sm text-gray-400">
-                사이트 분석 또는 로컬 폴더 PDF 문서화 중 원하는 작업 흐름을 선택하세요.
+                사이트 분석 또는 로컬 폴더/ZIP PDF 문서화 중 원하는 작업 흐름을 선택하세요.
               </p>
             </div>
-
             <div className="grid gap-3 md:grid-cols-2">
               <button
                 onClick={() => setInputMode("website")}
@@ -556,7 +656,6 @@ export default function App() {
                   Render Puppeteer API를 통해 렌더링된 HTML과 스냅샷을 수집한 뒤, 리포트와 템플릿을 생성합니다.
                 </p>
               </button>
-
               <button
                 onClick={() => setInputMode("folder")}
                 className={
@@ -566,15 +665,18 @@ export default function App() {
                     : "border-gray-800 bg-gray-950 hover:border-gray-600")
                 }
               >
-                <p className="font-medium text-white">로컬 폴더 PDF 문서화</p>
+                <p className="font-medium text-white">로컬 폴더 / ZIP PDF 문서화</p>
                 <p className="mt-1 text-sm text-gray-400">
-                  로컬 프로젝트의 텍스트 파일을 읽어 브라우저 인쇄 기반 PDF 문서 형태로 정리합니다.
+                  로컬 프로젝트 폴더를 선택하거나 ZIP 파일을 업로드해 파일별 PDF 문서로 정리합니다.
                 </p>
               </button>
             </div>
           </div>
         </section>
 
+        {/* ══════════════════════════════════ */}
+        {/* 웹사이트 모드                      */}
+        {/* ══════════════════════════════════ */}
         {inputMode === "website" ? (
           <>
             <section className="rounded-2xl border border-gray-800 bg-gray-900 p-6">
@@ -631,7 +733,6 @@ export default function App() {
                         원본과 생성 결과를 비교하고, 리포트/JSON/코드를 내보낼 수 있습니다.
                       </p>
                     </div>
-
                     <div className="flex flex-wrap gap-2">
                       {(["overview", "report", "template", "json"] as const).map((tab) => (
                         <button
@@ -653,24 +754,18 @@ export default function App() {
                     </div>
                   </div>
 
+                  {/* ── 개요 탭 ── */}
                   {selectedTab === "overview" ? (
                     <div className="mt-6 space-y-6">
                       <div className="grid gap-4 lg:grid-cols-2">
                         <div className="rounded-2xl border border-gray-800 bg-gray-950 p-5">
                           <h3 className="text-base font-semibold text-white">원본 스냅샷</h3>
                           {snapshotScreenshot ? (
-                            <img
-                              src={snapshotScreenshot}
-                              alt="captured website"
-                              className="mt-4 w-full rounded-xl border border-gray-800"
-                            />
+                            <img src={snapshotScreenshot} alt="captured website" className="mt-4 w-full rounded-xl border border-gray-800" />
                           ) : (
-                            <div className="mt-4 rounded-xl border border-dashed border-gray-700 p-8 text-sm text-gray-500">
-                              스냅샷이 없습니다.
-                            </div>
+                            <div className="mt-4 rounded-xl border border-dashed border-gray-700 p-8 text-sm text-gray-500">스냅샷이 없습니다.</div>
                           )}
                         </div>
-
                         <div className="rounded-2xl border border-gray-800 bg-gray-950 p-5">
                           <h3 className="text-base font-semibold text-white">생성 기준 요약</h3>
                           <div className="mt-4 space-y-3 text-sm text-gray-300">
@@ -680,7 +775,6 @@ export default function App() {
                             <p><span className="text-gray-500">레이아웃 신호:</span> {analysis.layout.signals.slice(0, 3).join(", ")}</p>
                             <p><span className="text-gray-500">프레임워크 힌트:</span> {(analysis.frameworkHints.length > 0 ? analysis.frameworkHints : ["없음"]).join(", ")}</p>
                           </div>
-
                           <div className="mt-5">
                             <p className="text-sm font-medium text-white">주요 블록</p>
                             <div className="mt-3 flex flex-wrap gap-2">
@@ -691,7 +785,6 @@ export default function App() {
                           </div>
                         </div>
                       </div>
-
                       <div className="grid gap-4 lg:grid-cols-2">
                         <div className="rounded-2xl border border-gray-800 bg-gray-950 p-5">
                           <h3 className="text-base font-semibold text-white">레이아웃 / 토큰</h3>
@@ -703,7 +796,6 @@ export default function App() {
                             <p><span className="text-gray-500">대표 폰트:</span> {analysis.tokens.fontFamilies.slice(0, 3).join(", ") || "없음"}</p>
                           </div>
                         </div>
-
                         <div className="rounded-2xl border border-gray-800 bg-gray-950 p-5">
                           <h3 className="text-base font-semibold text-white">반복 패턴</h3>
                           <ul className="mt-4 list-inside list-disc space-y-1 text-sm text-gray-300">
@@ -717,115 +809,68 @@ export default function App() {
                     </div>
                   ) : null}
 
+                  {/* ── 리포트 탭 ── */}
                   {selectedTab === "report" ? (
                     <div className="mt-6 space-y-4">
                       <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4">
                         <div className="flex flex-wrap gap-2">
-                          <button
-                            onClick={() => void handleDownloadZip("site-analysis-report.zip", buildReportFiles(analysis))}
-                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500"
-                          >
+                          <button onClick={() => void handleDownloadZip("site-analysis-report.zip", buildReportFiles(analysis))} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500">
                             리포트 ZIP 다운로드
                           </button>
-                          <button
-                            onClick={() => void handleCopyAllReportFiles()}
-                            className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800"
-                          >
+                          <button onClick={() => void handleCopyAllReportFiles()} className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800">
                             전체 리포트 복사
                           </button>
-                          <button
-                            onClick={handleDownloadAllReportFiles}
-                            className="rounded-lg border border-blue-700 bg-blue-950 px-4 py-2 text-sm font-medium text-blue-200 transition-colors hover:bg-blue-900"
-                          >
+                          <button onClick={handleDownloadAllReportFiles} className="rounded-lg border border-blue-700 bg-blue-950 px-4 py-2 text-sm font-medium text-blue-200 transition-colors hover:bg-blue-900">
                             전체 리포트 TXT 다운로드
                           </button>
                         </div>
                       </div>
-
                       <div className="grid gap-3 md:grid-cols-2">
                         {reportPdfs.map((pdf) => {
                           const active = selectedReportPdf?.id === pdf.id;
                           return (
-                            <button
-                              key={pdf.id}
-                              onClick={() => setSelectedReportPdfId(pdf.id)}
-                              className={
-                                "rounded-xl border p-4 text-left transition-colors " +
-                                (active
-                                  ? "border-blue-500 bg-blue-500/10"
-                                  : "border-gray-800 bg-gray-950 hover:border-gray-600")
-                              }
-                            >
+                            <button key={pdf.id} onClick={() => setSelectedReportPdfId(pdf.id)} className={"rounded-xl border p-4 text-left transition-colors " + (active ? "border-blue-500 bg-blue-500/10" : "border-gray-800 bg-gray-950 hover:border-gray-600")}>
                               <p className="font-medium text-white">{pdf.name}</p>
-                              <p className="mt-1 text-xs text-gray-400">
-                                {pdf.fileCount}개 파일 / {pdf.pageCount}페이지
-                              </p>
+                              <p className="mt-1 text-xs text-gray-400">{pdf.fileCount}개 파일 / {pdf.pageCount}페이지</p>
                             </button>
                           );
                         })}
                       </div>
-
                       {selectedReportPdf ? (
                         <div className="overflow-hidden rounded-xl border border-gray-800 bg-white">
-                          <iframe
-                            title="report preview"
-                            srcDoc={reportPreviewHtml}
-                            className="h-[900px] w-full bg-white"
-                          />
+                          <iframe title="report preview" srcDoc={reportPreviewHtml} className="h-[900px] w-full bg-white" />
                         </div>
                       ) : null}
                     </div>
                   ) : null}
 
+                  {/* ── 템플릿 탭 ── */}
                   {selectedTab === "template" ? (
                     <div className="mt-6 space-y-4">
                       <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
                         <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4">
                           <h3 className="text-base font-semibold text-white">원본 vs 생성 결과</h3>
-                          <p className="mt-1 text-sm text-gray-400">
-                            원본 스냅샷과 생성된 템플릿을 비교해 구조 반영 품질을 확인하세요.
-                          </p>
-
+                          <p className="mt-1 text-sm text-gray-400">원본 스냅샷과 생성된 템플릿을 비교해 구조 반영 품질을 확인하세요.</p>
                           {snapshotScreenshot ? (
-                            <img
-                              src={snapshotScreenshot}
-                              alt="captured website"
-                              className="mt-4 w-full rounded-xl border border-gray-800"
-                            />
+                            <img src={snapshotScreenshot} alt="captured website" className="mt-4 w-full rounded-xl border border-gray-800" />
                           ) : (
-                            <div className="mt-4 rounded-xl border border-dashed border-gray-700 p-8 text-sm text-gray-500">
-                              스냅샷이 없습니다.
-                            </div>
+                            <div className="mt-4 rounded-xl border border-dashed border-gray-700 p-8 text-sm text-gray-500">스냅샷이 없습니다.</div>
                           )}
                         </div>
-
                         <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4">
                           <h3 className="text-base font-semibold text-white">템플릿 내보내기</h3>
-                          <p className="mt-1 text-sm text-gray-400">
-                            ZIP / TXT / 전체 복사 형태로 템플릿 초안을 내보낼 수 있습니다.
-                          </p>
-
+                          <p className="mt-1 text-sm text-gray-400">ZIP / TXT / 전체 복사 형태로 템플릿 초안을 내보낼 수 있습니다.</p>
                           <div className="mt-4 flex flex-wrap gap-2">
-                            <button
-                              onClick={() => void handleDownloadZip("generated-template.zip", templateFiles)}
-                              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
-                            >
+                            <button onClick={() => void handleDownloadZip("generated-template.zip", templateFiles)} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500">
                               템플릿 ZIP 다운로드
                             </button>
-                            <button
-                              onClick={() => void handleCopyAllTemplateFiles()}
-                              className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800"
-                            >
+                            <button onClick={() => void handleCopyAllTemplateFiles()} className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800">
                               전체 템플릿 복사
                             </button>
-                            <button
-                              onClick={handleDownloadAllTemplateFiles}
-                              className="rounded-lg border border-emerald-700 bg-emerald-950 px-4 py-2 text-sm font-medium text-emerald-200 transition-colors hover:bg-emerald-900"
-                            >
+                            <button onClick={handleDownloadAllTemplateFiles} className="rounded-lg border border-emerald-700 bg-emerald-950 px-4 py-2 text-sm font-medium text-emerald-200 transition-colors hover:bg-emerald-900">
                               전체 템플릿 TXT 다운로드
                             </button>
                           </div>
-
                           <div className="mt-6">
                             <p className="text-sm font-medium text-white">핵심 블록 분류</p>
                             <div className="mt-3 flex flex-wrap gap-2">
@@ -836,97 +881,55 @@ export default function App() {
                           </div>
                         </div>
                       </div>
-
                       {selectedTemplatePdf ? (
                         <div className="overflow-hidden rounded-xl border border-gray-800 bg-white">
-                          <iframe
-                            title="template preview"
-                            srcDoc={templatePreviewHtml}
-                            className="h-[780px] w-full bg-white"
-                          />
+                          <iframe title="template preview" srcDoc={templatePreviewHtml} className="h-[780px] w-full bg-white" />
                         </div>
                       ) : null}
-
                       <div className="grid gap-3 md:grid-cols-2">
                         {templatePdfs.map((pdf) => {
                           const active = selectedTemplatePdf?.id === pdf.id;
                           return (
-                            <button
-                              key={pdf.id}
-                              onClick={() => setSelectedTemplatePdfId(pdf.id)}
-                              className={
-                                "rounded-xl border p-4 text-left transition-colors " +
-                                (active
-                                  ? "border-emerald-500 bg-emerald-500/10"
-                                  : "border-gray-800 bg-gray-950 hover:border-gray-600")
-                              }
-                            >
+                            <button key={pdf.id} onClick={() => setSelectedTemplatePdfId(pdf.id)} className={"rounded-xl border p-4 text-left transition-colors " + (active ? "border-emerald-500 bg-emerald-500/10" : "border-gray-800 bg-gray-950 hover:border-gray-600")}>
                               <p className="font-medium text-white">{pdf.name}</p>
-                              <p className="mt-1 text-xs text-gray-400">
-                                {pdf.fileCount}개 파일 / {pdf.pageCount}페이지
-                              </p>
+                              <p className="mt-1 text-xs text-gray-400">{pdf.fileCount}개 파일 / {pdf.pageCount}페이지</p>
                             </button>
                           );
                         })}
                       </div>
-
                       <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4">
                         <div className="mb-4">
                           <h3 className="text-base font-semibold text-white">템플릿 파일 브라우저</h3>
-                          <p className="mt-1 text-sm text-gray-400">
-                            생성된 파일을 선택해 코드 내용을 검토하고 복사하거나 다운로드할 수 있습니다.
-                          </p>
+                          <p className="mt-1 text-sm text-gray-400">생성된 파일을 선택해 코드 내용을 검토하고 복사하거나 다운로드할 수 있습니다.</p>
                         </div>
-
                         <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
                           <div className="max-h-[700px] space-y-2 overflow-y-auto rounded-xl border border-gray-800 bg-gray-900 p-3">
                             {templateFiles.map((file) => {
                               const active = selectedTemplateFile?.path === file.path;
                               return (
-                                <button
-                                  key={file.path}
-                                  onClick={() => setSelectedTemplateFilePath(file.path)}
-                                  className={
-                                    "w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors " +
-                                    (active
-                                      ? "border-emerald-500 bg-emerald-500/10 text-white"
-                                      : "border-gray-800 bg-gray-950 text-gray-300 hover:border-gray-600")
-                                  }
-                                >
+                                <button key={file.path} onClick={() => setSelectedTemplateFilePath(file.path)} className={"w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors " + (active ? "border-emerald-500 bg-emerald-500/10 text-white" : "border-gray-800 bg-gray-950 text-gray-300 hover:border-gray-600")}>
                                   {file.path}
                                 </button>
                               );
                             })}
                           </div>
-
                           <div className="overflow-hidden rounded-xl border border-gray-800 bg-gray-900">
                             {selectedTemplateFile ? (
                               <>
                                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-800 bg-gray-950 px-4 py-3">
                                   <div>
                                     <p className="text-sm font-medium text-white">{selectedTemplateFile.path}</p>
-                                    <p className="mt-1 text-xs text-gray-500">
-                                      {(selectedTemplateFile.content.length / 1024).toFixed(1)} KB
-                                    </p>
+                                    <p className="mt-1 text-xs text-gray-500">{(selectedTemplateFile.content.length / 1024).toFixed(1)} KB</p>
                                   </div>
-
                                   <div className="flex flex-wrap gap-2">
-                                    <button
-                                      onClick={() => void handleCopyText(selectedTemplateFile.content)}
-                                      className="rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800"
-                                    >
+                                    <button onClick={() => void handleCopyText(selectedTemplateFile.content)} className="rounded-lg border border-gray-700 bg-gray-900 px-3 py-2 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800">
                                       파일 내용 복사
                                     </button>
-
-                                    <button
-                                      onClick={() => handleDownloadTextFile(selectedTemplateFile.path, selectedTemplateFile.content)}
-                                      className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
-                                    >
+                                    <button onClick={() => handleDownloadTextFile(selectedTemplateFile.path, selectedTemplateFile.content)} className="rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500">
                                       파일 다운로드
                                     </button>
                                   </div>
                                 </div>
-
                                 <pre className="max-h-[640px] overflow-auto p-4 text-xs leading-6 text-gray-300">
                                   {selectedTemplateFile.content}
                                 </pre>
@@ -940,25 +943,19 @@ export default function App() {
                     </div>
                   ) : null}
 
+                  {/* ── JSON 탭 ── */}
                   {selectedTab === "json" ? (
                     <div className="mt-6 space-y-4">
                       <div className="rounded-2xl border border-gray-800 bg-gray-950 p-4">
                         <div className="flex flex-wrap gap-2">
-                          <button
-                            onClick={() => void handleCopyText(analysisJson)}
-                            className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800"
-                          >
+                          <button onClick={() => void handleCopyText(analysisJson)} className="rounded-lg border border-gray-700 bg-gray-900 px-4 py-2 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800">
                             JSON 복사
                           </button>
-                          <button
-                            onClick={() => handleDownloadTextFile("analysis-model.json", analysisJson, "application/json;charset=utf-8")}
-                            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500"
-                          >
+                          <button onClick={() => handleDownloadTextFile("analysis-model.json", analysisJson, "application/json;charset=utf-8")} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500">
                             JSON 다운로드
                           </button>
                         </div>
                       </div>
-
                       <div className="overflow-hidden rounded-xl border border-gray-800 bg-gray-950">
                         <pre className="overflow-x-auto p-4 text-xs leading-6 text-gray-300">{analysisJson}</pre>
                       </div>
@@ -970,14 +967,19 @@ export default function App() {
           </>
         ) : null}
 
+        {/* ══════════════════════════════════ */}
+        {/* 폴더 / ZIP 모드                    */}
+        {/* ══════════════════════════════════ */}
         {inputMode === "folder" ? (
           <>
             <section className="rounded-2xl border border-gray-800 bg-gray-900 p-6">
-              <h2 className="text-lg font-semibold text-gray-100">로컬 폴더 PDF 문서화</h2>
+              <h2 className="text-lg font-semibold text-gray-100">로컬 폴더 / ZIP PDF 문서화</h2>
               <p className="mt-2 text-sm text-gray-400">
-                텍스트 파일만 읽어 PDF 문서로 정리합니다. node_modules, .git, 이미지/바이너리, 1MB 초과 파일은 자동 제외됩니다.
+                폴더를 선택하거나 ZIP 파일을 업로드하면 텍스트 파일만 읽어 PDF 문서로 정리합니다.
+                node_modules, .git, 이미지/바이너리, 1MB 초과 파일은 자동 제외됩니다.
               </p>
 
+              {/* 숨겨진 input */}
               {/* @ts-expect-error webkitdirectory is browser-specific */}
               <input
                 ref={folderInputRef}
@@ -988,6 +990,13 @@ export default function App() {
                 onChange={handleFolderSelect}
                 className="hidden"
               />
+              <input
+                ref={zipInputRef}
+                type="file"
+                accept=".zip"
+                onChange={handleZipUpload}
+                className="hidden"
+              />
 
               <div className="mt-4 flex flex-wrap gap-3">
                 <button
@@ -995,15 +1004,23 @@ export default function App() {
                   disabled={status === "reading" || status === "generating" || status === "analyzing"}
                   className="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:bg-gray-700 disabled:text-gray-500"
                 >
-                  {status === "reading" ? "폴더 읽는 중..." : "폴더 선택"}
+                  {status === "reading" ? "읽는 중..." : "📁 폴더 선택"}
+                </button>
+
+                <button
+                  onClick={() => zipInputRef.current?.click()}
+                  disabled={status === "reading" || status === "generating" || status === "analyzing"}
+                  className="rounded-xl bg-violet-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-violet-500 disabled:bg-gray-700 disabled:text-gray-500"
+                >
+                  {status === "reading" ? "읽는 중..." : "📦 ZIP 업로드"}
                 </button>
 
                 <button
                   onClick={() => void handleGenerateFolderPdf()}
-                  disabled={folderFiles.length === 0 || status === "reading" || status === "generating" || status === "analyzing"}
+                  disabled={selectedFolderFiles.length === 0 || status === "reading" || status === "generating" || status === "analyzing"}
                   className="rounded-xl border border-gray-700 bg-gray-950 px-6 py-3 text-sm font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800 disabled:border-gray-800 disabled:bg-gray-900 disabled:text-gray-500"
                 >
-                  {status === "generating" ? "PDF 생성 중..." : "PDF 문서 생성"}
+                  {status === "generating" ? "PDF 생성 중..." : `PDF 문서 생성 (${selectedFolderFiles.length}개)`}
                 </button>
 
                 <button
@@ -1027,29 +1044,66 @@ export default function App() {
               ) : null}
             </section>
 
+            {/* ── 파일 목록 (체크박스 선택) ── */}
             {folderFiles.length > 0 ? (
               <section className="rounded-2xl border border-gray-800 bg-gray-900 p-6">
-                <h2 className="text-lg font-semibold text-gray-100">파일 목록</h2>
-                <div className="mt-4 max-h-80 space-y-1 overflow-y-auto rounded-xl border border-gray-800 bg-gray-950 p-3">
-                  {folderFiles.map((file) => (
-                    <div
-                      key={file.path}
-                      className="flex items-center justify-between gap-3 text-xs font-mono text-gray-300"
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-100">파일 목록</h2>
+                    <p className="mt-1 text-sm text-gray-400">
+                      {selectedFilePaths.size}개 선택 / 전체 {folderFiles.length}개
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSelectAll}
+                      className="rounded-lg border border-gray-700 bg-gray-950 px-4 py-2 text-xs font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800"
                     >
-                      <span className="truncate">{file.path}</span>
-                      <span className="shrink-0 text-gray-500">
-                        {(file.content.length / 1024).toFixed(1)} KB
-                      </span>
-                    </div>
-                  ))}
+                      ✅ 전체 선택
+                    </button>
+                    <button
+                      onClick={handleDeselectAll}
+                      className="rounded-lg border border-gray-700 bg-gray-950 px-4 py-2 text-xs font-medium text-gray-100 transition-colors hover:border-gray-500 hover:bg-gray-800"
+                    >
+                      ⬜ 전체 해제
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-4 max-h-96 space-y-1 overflow-y-auto rounded-xl border border-gray-800 bg-gray-950 p-3">
+                  {folderFiles.map((file) => {
+                    const checked = selectedFilePaths.has(file.path);
+                    return (
+                      <label
+                        key={file.path}
+                        className={
+                          "flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-xs transition-colors " +
+                          (checked
+                            ? "bg-emerald-500/10 text-white"
+                            : "text-gray-400 hover:bg-gray-900")
+                        }
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => handleToggleFile(file.path)}
+                          className="h-4 w-4 shrink-0 rounded border-gray-600 accent-emerald-500"
+                        />
+                        <span className="min-w-0 flex-1 truncate font-mono">{file.path}</span>
+                        <span className="shrink-0 text-gray-500">
+                          {(file.content.length / 1024).toFixed(1)} KB
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
               </section>
             ) : null}
 
+            {/* ── 폴더 PDF 미리보기 ── */}
             {folderPdfs.length > 0 ? (
               <section className="rounded-2xl border border-gray-800 bg-gray-900 p-6">
                 <h2 className="text-lg font-semibold text-gray-100">폴더 PDF 문서 미리보기</h2>
-
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   {folderPdfs.map((pdf) => {
                     const active = selectedFolderPdf?.id === pdf.id;
